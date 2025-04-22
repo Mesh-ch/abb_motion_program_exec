@@ -390,7 +390,7 @@ MODULE motion_program_exec
     
     FUNC bool set_do(num cmd_num)
         VAR string signal_name;
-        VAR signaldo signalDO;
+        VAR signaldo signal_do;
         VAR num signal_value;
         IF NOT (
         try_motion_program_read_string(signal_name)
@@ -398,14 +398,14 @@ MODULE motion_program_exec
         ) THEN
             RETURN FALSE;
         ENDIF
-        AliasIO signal_name, signalDO;
-        SetDO signalDO, signal_value;
+        AliasIO signal_name, signal_do;
+        SetDO signal_do, signal_value;
         RETURN TRUE;
     ENDFUNC
 
     FUNC bool set_go(num cmd_num)
         VAR string signal_name;
-        VAR signalgo signalGO;
+        VAR signalgo signal_go;
         VAR num signal_value;
         IF NOT (
         try_motion_program_read_string(signal_name)
@@ -413,14 +413,14 @@ MODULE motion_program_exec
         ) THEN
             RETURN FALSE;
         ENDIF
-        AliasIO signal_name, signalGO;
-        SetGO signalGO, signal_value;
+        AliasIO signal_name, signal_go;
+        SetGO signal_go, signal_value;
         RETURN TRUE;
     ENDFUNC
 
     FUNC bool wait_di(num cmd_num)
         VAR string signal_name;
-        VAR signaldi signalDI;
+        VAR signaldi signal_di;
         VAR num signal_value;
         IF NOT (
         try_motion_program_read_string(signal_name)
@@ -428,15 +428,15 @@ MODULE motion_program_exec
         ) THEN
             RETURN FALSE;
         ENDIF
-        AliasIO signal_name, signalDI;
-        WaitDI signalDI, signal_value;
+        AliasIO signal_name, signal_di;
+        WaitDI signal_di, signal_value;
         RETURN TRUE;
     ENDFUNC
 
     
     FUNC bool wait_gi(num cmd_num)
         VAR string signal_name;
-        VAR signalgi signalGI;
+        VAR signalgi signal_gi;
         VAR num signal_value;
         IF NOT (
         try_motion_program_read_string(signal_name)
@@ -444,8 +444,8 @@ MODULE motion_program_exec
         ) THEN
             RETURN FALSE;
         ENDIF
-        AliasIO signal_name, signalGI;
-        WaitGI signalGI, signal_value;
+        AliasIO signal_name, signal_gi;
+        WaitGI signal_gi, signal_value;
         RETURN TRUE;
     ENDFUNC
     
