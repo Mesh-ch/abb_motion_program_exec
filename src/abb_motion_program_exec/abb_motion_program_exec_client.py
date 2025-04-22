@@ -95,6 +95,8 @@ class MotionProgram:
     MoveJ = command_append_method(commands.MoveJCommand)
     MoveL = command_append_method(commands.MoveLCommand)
     MoveC = command_append_method(commands.MoveCCommand)
+    MoveLRelTool = command_append_method(commands.MoveLRelTool)
+    
     WaitTime = command_append_method(commands.WaitTimeCommand)
     CirPathMode = command_append_method(commands.CirPathModeCommand)
     SyncMoveOn = command_append_method(commands.SyncMoveOnCommand)
@@ -106,7 +108,10 @@ class MotionProgram:
     EGMMoveC = command_append_method(egm_commands.EGMMoveCCommand)
     
     SetDO = command_append_method(commands.SetDOCommand)
-    MoveLRelTool = command_append_method(commands.MoveLRelTool)
+    SetGO = command_append_method(commands.SetGOCommand)
+    
+    WaitDI = command_append_method(commands.WaitDICommand)
+    WaitGI = command_append_method(commands.WaitGICommand)
 
     def __init__(self,first_cmd_num: int=1, tool: tooldata = None, wobj: wobjdata = None, timestamp: str = None, 
         egm_config: Union[EGMStreamConfig,EGMJointTargetConfig,EGMPoseTargetConfig,EGMPathCorrectionConfig] = None, 

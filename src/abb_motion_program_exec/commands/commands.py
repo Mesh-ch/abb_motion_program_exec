@@ -227,3 +227,67 @@ class MoveLRelTool(CommandBase):
         return "MoveL RelTool "
 
     _append_method_doc = ""
+
+@dataclass
+class SetGOCommand(CommandBase):
+    command_opcode = 11
+
+    signal_name: str
+    signal_value: int 
+
+    def write_params(self, f: io.IOBase):
+        # pass
+        signal_name_b = util.str_to_bin(self.signal_name)
+        signal_value_b = util.intnum_to_bin(self.signal_value)
+
+        f.write(signal_name_b)
+        f.write(signal_value_b)
+
+    def to_rapid(self, **kwargs):
+        return f"SetGO '{self.signal_name}' {self.signal_value};"
+
+    _append_method_doc = ""
+    
+@dataclass
+class WaitDICommand(CommandBase):
+    command_opcode = 12
+
+    signal_name: str
+    signal_value: bool
+
+    def write_params(self, f: io.IOBase):
+        # pass
+        signal_name_b = util.str_to_bin(self.signal_name)
+        if self.signal_value:
+            signal_bool_to_int = 1
+        else:
+            signal_bool_to_int = 0
+        signal_value_b = util.intnum_to_bin(signal_bool_to_int)
+
+        f.write(signal_name_b)
+        f.write(signal_value_b)
+
+    def to_rapid(self, **kwargs):
+        return f"WaitDI '{self.signal_name}' {self.signal_value};"
+
+    _append_method_doc = ""
+    
+@dataclass
+class WaitGICommand(CommandBase):
+    command_opcode = 13
+
+    signal_name: str
+    signal_value: int
+
+    def write_params(self, f: io.IOBase):
+        # pass
+        signal_name_b = util.str_to_bin(self.signal_name)
+        signal_value_b = util.intnum_to_bin(self.signal_value)
+
+        f.write(signal_name_b)
+        f.write(signal_value_b)
+
+    def to_rapid(self, **kwargs):
+        return f"WaitGI '{self.signal_name}' {self.signal_value};"
+
+    _append_method_doc = ""
