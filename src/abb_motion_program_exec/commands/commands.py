@@ -206,7 +206,7 @@ class SetDOCommand(CommandBase):
             signal_bool_to_int = 1
         else:
             signal_bool_to_int = 0
-        signal_value_b = util.intnum_to_bin(signal_bool_to_int)
+        signal_value_b = util.num_to_bin(signal_bool_to_int)
 
         f.write(signal_name_b)
         f.write(signal_value_b)
@@ -238,7 +238,7 @@ class SetGOCommand(CommandBase):
     def write_params(self, f: io.IOBase):
         # pass
         signal_name_b = util.str_to_bin(self.signal_name)
-        signal_value_b = util.intnum_to_bin(self.signal_value)
+        signal_value_b = util.num_to_bin(self.signal_value)
 
         f.write(signal_name_b)
         f.write(signal_value_b)
@@ -262,7 +262,7 @@ class WaitDICommand(CommandBase):
             signal_bool_to_int = 1
         else:
             signal_bool_to_int = 0
-        signal_value_b = util.intnum_to_bin(signal_bool_to_int)
+        signal_value_b = util.num_to_bin(signal_bool_to_int)
 
         f.write(signal_name_b)
         f.write(signal_value_b)
@@ -282,7 +282,7 @@ class WaitGICommand(CommandBase):
     def write_params(self, f: io.IOBase):
         # pass
         signal_name_b = util.str_to_bin(self.signal_name)
-        signal_value_b = util.intnum_to_bin(self.signal_value)
+        signal_value_b = util.num_to_bin(self.signal_value)
 
         f.write(signal_name_b)
         f.write(signal_value_b)

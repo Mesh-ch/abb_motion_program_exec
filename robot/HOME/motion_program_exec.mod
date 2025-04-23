@@ -284,19 +284,19 @@ MODULE motion_program_exec
             motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN try_motion_program_sync_move_off(cmd_num);
         CASE MOTION_PROGRAM_CMD_SETDO:
-            ! motion_cmd_num_history{local_cmd_ind}:=-1;
+            motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN set_do(cmd_num);
         Case MOTION_PROGRAM_CMD_MOVELRELTOOL:
             motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN move_reltool(cmd_num);
         CASE MOTION_PROGRAM_CMD_SETGO:
-            ! motion_cmd_num_history{local_cmd_ind}:=-1;
+            motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN set_go(cmd_num);
         CASE MOTION_PROGRAM_CMD_WAITDI:
-            ! motion_cmd_num_history{local_cmd_ind}:=-1;
+            motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN wait_di(cmd_num);
         CASE MOTION_PROGRAM_CMD_WAITGI:
-            ! motion_cmd_num_history{local_cmd_ind}:=-1;
+            motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN wait_gi(cmd_num);
         DEFAULT:
             RAISE ERR_INVALID_OPCODE;
