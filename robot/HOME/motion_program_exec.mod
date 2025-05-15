@@ -16,6 +16,7 @@ MODULE motion_program_exec
     CONST num MOTION_PROGRAM_CMD_SETGO:=11; !set group output
     CONST num MOTION_PROGRAM_CMD_WAITDI:=12; !wait for digital input
     CONST num MOTION_PROGRAM_CMD_WAITGI:=13; !wait for group input
+    CONST num MOTION_PROGRAM_CMD_CBC:=14; !Run cyclic brake check
 
 
     LOCAL VAR iodev motion_program_io_device;
@@ -298,6 +299,9 @@ MODULE motion_program_exec
         CASE MOTION_PROGRAM_CMD_WAITGI:
             motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN wait_gi(cmd_num);
+        CASE MOTION_PROGRAM_CMD_CBC:
+            motion_cmd_num_history{local_cmd_ind}:=-1;
+            RETURN cyclicbrakecheck(cmd_num);
         DEFAULT:
             RAISE ERR_INVALID_OPCODE;
         ENDTEST
@@ -455,6 +459,11 @@ MODULE motion_program_exec
         ConfL\Off;
         MoveL RelTool(rt, 0, 0, -100), v100, fine, motion_program_tool \WObj:=motion_program_wobj;
         ConfL\On;
+        RETURN TRUE;
+    ENDFUNC
+
+    FUNC bool cyclicbrakecheck(num cmd_num)
+        CyclicBrakeCheck;
         RETURN TRUE;
     ENDFUNC
     

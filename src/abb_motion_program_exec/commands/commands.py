@@ -291,3 +291,12 @@ class WaitGICommand(CommandBase):
         return f"WaitGI '{self.signal_name}' {self.signal_value};"
 
     _append_method_doc = ""
+    
+@dataclass
+class RunCBCCommand(CommandBase):
+    command_opcode = 14
+
+    def to_rapid(self, **kwargs):
+        return "CyclicBrakeCheck;"
+
+    _append_method_doc = ""
