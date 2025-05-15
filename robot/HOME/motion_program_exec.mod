@@ -301,7 +301,7 @@ MODULE motion_program_exec
             RETURN wait_gi(cmd_num);
         CASE MOTION_PROGRAM_CMD_CBC:
             motion_cmd_num_history{local_cmd_ind}:=-1;
-            RETURN cyclicbrakecheck(cmd_num);
+            RETURN run_CBC(cmd_num);
         DEFAULT:
             RAISE ERR_INVALID_OPCODE;
         ENDTEST
@@ -462,7 +462,7 @@ MODULE motion_program_exec
         RETURN TRUE;
     ENDFUNC
 
-    FUNC bool cyclicbrakecheck(num cmd_num)
+    FUNC bool run_CBC(num cmd_num)
         CyclicBrakeCheck;
         RETURN TRUE;
     ENDFUNC
