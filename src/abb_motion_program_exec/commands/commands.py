@@ -38,8 +38,8 @@ class MoveAbsJCommand(CommandBase):
         to_joint_pos_str = self.to_joint_pos.to_rapid()
         speed_str = self.speed.to_rapid()
         zone_str = self.zone.to_rapid()
-        sync_id = "" if not sync_move else f"\\ID:={cmd_num},"
-        return f"MoveAbsJ {to_joint_pos_str}, {sync_id}{speed_str}, {zone_str}, motion_program_tool\\Wobj:=motion_program_wobj;"
+        sync_id = "" if not sync_move else rf"\\ID:={cmd_num},"
+        return rf"MoveAbsJ {to_joint_pos_str}, {sync_id}{speed_str}, {zone_str}, motion_program_tool\\Wobj:=motion_program_wobj;"
 
     _append_method_doc = ""
 
@@ -64,8 +64,8 @@ class MoveJCommand(CommandBase):
         speed_str = self.speed.to_rapid()
         zone_str = self.zone.to_rapid()
 
-        sync_id = "" if not sync_move else f"\\ID:={cmd_num},"
-        return f"MoveJ {to_point_str}, {sync_id}{speed_str}, {zone_str}, motion_program_tool\\Wobj:=motion_program_wobj;"
+        sync_id = "" if not sync_move else rf"\\ID:={cmd_num},"
+        return rf"MoveJ {to_point_str}, {sync_id}{speed_str}, {zone_str}, motion_program_tool\\Wobj:=motion_program_wobj;"
 
     _append_method_doc = ""
 
@@ -91,8 +91,8 @@ class MoveLCommand(CommandBase):
         speed_str = self.speed.to_rapid()
         zone_str = self.zone.to_rapid()
 
-        sync_id = "" if not sync_move else f"\\ID:={cmd_num},"
-        return f"MoveL {to_point_str}, {sync_id}{speed_str}, {zone_str}, motion_program_tool\\Wobj:=motion_program_wobj;"
+        sync_id = "" if not sync_move else rf"\\ID:={cmd_num},"
+        return rf"MoveL {to_point_str}, {sync_id}{speed_str}, {zone_str}, motion_program_tool\\Wobj:=motion_program_wobj;"
 
     _append_method_doc = ""
 
@@ -121,8 +121,8 @@ class MoveCCommand(CommandBase):
         to_point_str = self.to_point.to_rapid()
         speed_str = self.speed.to_rapid()
         zone_str = self.zone.to_rapid()
-        sync_id = "" if not sync_move else f"\\ID:={cmd_num},"
-        return f"MoveC {cir_point_str}, {sync_id}{to_point_str}, {speed_str}, {zone_str}, motion_program_tool\\Wobj:=motion_program_wobj;"
+        sync_id = "" if not sync_move else rf"\\ID:={cmd_num},"
+        return rf"MoveC {cir_point_str}, {sync_id}{to_point_str}, {speed_str}, {zone_str}, motion_program_tool\\Wobj:=motion_program_wobj;"
 
     _append_method_doc = ""
 
