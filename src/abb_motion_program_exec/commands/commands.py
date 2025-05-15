@@ -296,6 +296,9 @@ class WaitGICommand(CommandBase):
 class RunCBCCommand(CommandBase):
     command_opcode = 14
 
+    def write_params(self, f: io.IOBase):
+        pass
+    
     def to_rapid(self, **kwargs):
         return "CyclicBrakeCheck;"
 
