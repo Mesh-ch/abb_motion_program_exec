@@ -17,6 +17,7 @@ MODULE motion_program_exec
     CONST num MOTION_PROGRAM_CMD_WAITDI:=12; !wait for digital input
     CONST num MOTION_PROGRAM_CMD_WAITGI:=13; !wait for group input
     CONST num MOTION_PROGRAM_CMD_CBC:=14; !Run cyclic brake check
+    CONST num MOTION_PROGRAM_CMD_TIE:=15; !Run tying cycle
 
 
     LOCAL VAR iodev motion_program_io_device;
@@ -302,6 +303,9 @@ MODULE motion_program_exec
         CASE MOTION_PROGRAM_CMD_CBC:
             motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN run_CBC(cmd_num);
+        CASE MOTION_PROGRAM_CMD_TIE:
+            motion_cmd_num_history{local_cmd_ind}:=-1;
+            RETURN run_tying_cycle(cmd_num);
         DEFAULT:
             RAISE ERR_INVALID_OPCODE;
         ENDTEST
@@ -467,6 +471,48 @@ MODULE motion_program_exec
         RETURN TRUE;
     ENDFUNC
     
+    FUNC bool run_tying_cycle(num cmd_num)
+        VAR robtarget rt;
+        VAR robtarget approach_rt;
+        VAR speeddata sd;
+        VAR zonedata zd;
+        VAR signalgi signal_gi;
+        VAR signalgo signal_go;
+        VAR num approach_offsetZ:=150;
+        VAR string state_signal_str:="xtie_state";
+        VAR string command_signal_str:="xtie_command";
+        IF NOT (
+            try_motion_program_read_rt(rt)
+            AND try_motion_program_read_sd(sd)
+            AND try_motion_program_read_zd(zd)
+            AND try_motion_program_read_num(approach_offsetZ)
+            ) THEN
+                RETURN FALSE;
+        ENDIF
+        
+        approach_rt := RelTool(rt, 0, 0, approach_offsetZ);
+        ConfL \Off;
+        ! Move to approach target
+        TriggL approach_rt,sd,motion_trigg_data,z50,motion_program_tool\WObj:=motion_program_wobj;
+        ! Move to tying target
+        TriggL rt,sd,motion_trigg_data,fine,motion_program_tool\WObj:=motion_program_wobj;
+        ! Check tying tool state and send tying command
+        AliasIO state_signal_str, signal_gi;
+        AliasIO command_signal_str, signal_go;
+        WaitGI signal_gi, 3; ! 3 == ST_XTIE_READY
+        SetGO signal_go, 4; ! 4 == Start command
+        !! Add Trap routine here in case of error
+        WaitGI signal_gi, 5; ! 5 == ST_TIE_DONE
+        ! Move to approach (exit) target
+        TriggL approach_rt,sd,motion_trigg_data,z50,motion_program_tool\WObj:=motion_program_wobj;
+        ! Clear xtie tool
+        SetGO signal_go, 7; ! 7 == Clear command
+        ConfL \On;
+        
+        RETURN TRUE;
+
+    ENDFUNC
+
     FUNC bool try_motion_program_wait(num cmd_num)
         VAR num t;
         IF NOT try_motion_program_read_num(t) THEN

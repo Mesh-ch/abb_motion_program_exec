@@ -114,6 +114,7 @@ class MotionProgram:
     WaitGI = command_append_method(commands.WaitGICommand)
     
     RunCBC = command_append_method(commands.RunCBCCommand)
+    RunTie = command_append_method(commands.RunTieCommand)
 
     def __init__(self,first_cmd_num: int=1, tool: tooldata = None, wobj: wobjdata = None, timestamp: str = None, 
         egm_config: Union[EGMStreamConfig,EGMJointTargetConfig,EGMPoseTargetConfig,EGMPathCorrectionConfig] = None, 
