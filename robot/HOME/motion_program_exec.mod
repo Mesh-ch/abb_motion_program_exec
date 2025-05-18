@@ -479,6 +479,7 @@ MODULE motion_program_exec
         VAR signalgi signal_gi;
         VAR signalgo signal_go;
         VAR num approach_offsetZ:=150;
+        VAR num no_tie;
         VAR string state_signal_str:="xtie_state";
         VAR string command_signal_str:="xtie_command";
         IF NOT (
@@ -486,6 +487,7 @@ MODULE motion_program_exec
             AND try_motion_program_read_sd(sd)
             AND try_motion_program_read_zd(zd)
             AND try_motion_program_read_num(approach_offsetZ)
+            AND try_motion_program_read_num(no_tie)
             ) THEN
                 RETURN FALSE;
         ENDIF
@@ -493,22 +495,30 @@ MODULE motion_program_exec
         approach_rt := RelTool(rt, 0, 0, approach_offsetZ);
         ConfL \Off;
         ! Move to approach target
-        TriggL approach_rt,sd,motion_trigg_data,z50,motion_program_tool\WObj:=motion_program_wobj;
+        MoveL approach_rt,sd,z50,motion_program_tool\WObj:=motion_program_wobj;
         ! Move to tying target
-        TriggL rt,sd,motion_trigg_data,fine,motion_program_tool\WObj:=motion_program_wobj;
+        MoveL rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         ! Check tying tool state and send tying command
-        AliasIO state_signal_str, signal_gi;
-        AliasIO command_signal_str, signal_go;
-        WaitGI signal_gi, 3; ! 3 == ST_XTIE_READY
-        SetGO signal_go, 4; ! 4 == Start command
-        !! Add Trap routine here in case of error
-        WaitGI signal_gi, 5; ! 5 == ST_TIE_DONE
+        if no_tie=0 THEN
+             AliasIO state_signal_str, signal_gi;
+            AliasIO command_signal_str, signal_go;
+            WaitGI signal_gi, 3; ! 3 == ST_XTIE_READY
+            SetGO signal_go, 4; ! 4 == Start command
+            !! Add Trap routine here in case of error
+            WaitGI signal_gi, 5; ! 5 == ST_TIE_DONE
+        ENDIF
+
         ! Move to approach (exit) target
-        TriggL approach_rt,sd,motion_trigg_data,z50,motion_program_tool\WObj:=motion_program_wobj;
+        MoveL approach_rt,sd,z50,motion_program_tool\WObj:=motion_program_wobj;
         ! Clear xtie tool
-        SetGO signal_go, 7; ! 7 == Clear command
+        if no_tie=0 THEN
+            SetGO signal_go, 7; ! 7 == Clear command
+        ENDIF
         ConfL \On;
         
+        IF task_ind=1 THEN
+            SetAO motion_program_current_cmd_num,cmd_num;
+        ENDIF
         RETURN TRUE;
 
     ENDFUNC
