@@ -470,7 +470,7 @@ MODULE motion_program_exec
         ENDIF
         rt := CRobT(\Tool:=motion_program_tool,\WObj:=motion_program_wobj);
         ConfL\Off;
-        MoveL RelTool(rt, 0, 0, -offset_distance), sd, fine, motion_program_tool \WObj:=motion_program_wobj;
+        MoveL RelTool(rt, 0, 0, offset_distance), sd, fine, motion_program_tool \WObj:=motion_program_wobj;
         ConfL\On;
         RETURN TRUE;
     ENDFUNC
