@@ -219,9 +219,15 @@ class SetDOCommand(CommandBase):
 @dataclass
 class MoveLRelTool(CommandBase):
     command_opcode = 10
+    speed: speeddata = v100
+    distance: float = -100
 
     def write_params(self, f: io.IOBase):
-        pass
+        speed_b = util.speeddata_to_bin(self.speed)
+        distance_b = util.num_to_bin(self.distance)
+        
+        f.write(speed_b)
+        f.write(distance_b)
 
     def to_rapid(self, **kwargs):
         return "MoveL RelTool "

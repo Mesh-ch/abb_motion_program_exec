@@ -24,8 +24,8 @@ MODULE motion_program_exec
     LOCAL VAR rawbytes motion_program_bytes;
     LOCAL VAR num motion_program_bytes_offset;
 
-    TASK PERS tooldata motion_program_tool:=[TRUE,[[0,0,0],[1,0,0,0]],[0.001,[0,0,0.001],[1,0,0,0],0,0,0]];
-    TASK PERS wobjdata motion_program_wobj:=[FALSE,TRUE,"",[[0,0,0],[1,0,0,0]],[[0,0,0],[1,0,0,0]]];
+    TASK PERS tooldata motion_program_tool:=[TRUE,[[64.4664,0.233697,734.505],[0.707,0,0,-0.707]],[25,[0,0,300],[1,0,0,0],0,0,0]];
+    TASK PERS wobjdata motion_program_wobj:=[FALSE,TRUE,"ROB_1",[[3181.14,1287.8,-450.79],[0.44396,0.54746,-0.54725,-0.45135]],[[0,0,0],[1,0,0,0]]];
     TASK PERS loaddata motion_program_gripload:=[0.001, [0, 0, 0.001],[1, 0, 0, 0], 0, 0, 0];
 
     LOCAL VAR rmqslot logger_rmq;
@@ -458,10 +458,19 @@ MODULE motion_program_exec
     ENDFUNC
     
     FUNC bool move_reltool(num cmd_num)
+        ! Move robot away in Z by given distance
         VAR robtarget rt;
+        VAR num offset_distance:=-100;
+        VAR speeddata sd;
+        IF NOT (
+            try_motion_program_read_sd(sd)
+            AND try_motion_program_read_num(offset_distance)
+            ) THEN
+                RETURN FALSE;
+        ENDIF
         rt := CRobT(\Tool:=motion_program_tool,\WObj:=motion_program_wobj);
         ConfL\Off;
-        MoveL RelTool(rt, 0, 0, -100), v100, fine, motion_program_tool \WObj:=motion_program_wobj;
+        MoveL RelTool(rt, 0, 0, -offset_distance), sd, fine, motion_program_tool \WObj:=motion_program_wobj;
         ConfL\On;
         RETURN TRUE;
     ENDFUNC
