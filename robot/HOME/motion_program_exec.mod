@@ -97,11 +97,14 @@ MODULE motion_program_exec
         TriggInt motion_trigg_data,0.001,\Start,motion_trigg_intno;
         RMQFindSlot logger_rmq,"RMQ_logger";
         try_motion_program_egm_init;
+        SetDO motion_program_completed, 0;
     ENDPROC
 
     PROC motion_program_fini()
+        TPWrite "Motion Program Complete";
         ErrWrite\I,"Motion Program Complete","Motion Program Complete";
         IDelete motion_trigg_intno;
+        SetDO motion_program_completed, 1;
     ENDPROC
 
     PROC run_motion_program_file(string filename)
