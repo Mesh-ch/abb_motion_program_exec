@@ -25,7 +25,7 @@ MODULE motion_program_exec
     LOCAL VAR num motion_program_bytes_offset;
 
     TASK PERS tooldata motion_program_tool:=[TRUE,[[64.4664,0.233697,734.505],[0.707,0,0,-0.707]],[25,[0,0,300],[1,0,0,0],0,0,0]];
-    TASK PERS wobjdata motion_program_wobj:=[FALSE,TRUE,"ROB_1",[[3181.14,1287.8,-450.79],[0.44396,0.54746,-0.54725,-0.45135]],[[0,0,0],[1,0,0,0]]];
+    TASK PERS wobjdata motion_program_wobj:=[FALSE,TRUE,"ROB_1",[[0,0,0],[1,0,0,0]],[[0,0,0],[1,0,0,0]]];
     TASK PERS loaddata motion_program_gripload:=[0.001, [0, 0, 0.001],[1, 0, 0, 0], 0, 0, 0];
 
     LOCAL VAR rmqslot logger_rmq;
@@ -509,12 +509,23 @@ MODULE motion_program_exec
         MoveL rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         ! Check tying tool state and send tying command
         if no_tie=0 THEN
-             AliasIO state_signal_str, signal_gi;
+            AliasIO state_signal_str, signal_gi;
             AliasIO command_signal_str, signal_go;
             WaitGI signal_gi, 3; ! 3 == ST_XTIE_READY
             SetGO signal_go, 4; ! 4 == Start command
             !! Add Trap routine here in case of error
-            WaitGI signal_gi, 5; ! 5 == ST_TIE_DONE
+            WaitGI signal_gi, 5, \MaxTime:=8; ! 5 == ST_TIE_DONE
+            !! If error occurs due to timeout try to reset and pred and retry once
+            IF GInput(signal_gi)=8 THEN
+                TPWrite("Trying to auto reset XTIE error..");
+                SetGO signal_go, 21; ! 21==RESET_ERROR
+                WaitGI signal_gi, 1; ! 1==RESET_STATE
+                SetGO signal_go, 2; ! 2==PRED_TOOL
+                WaitGI signal_gi, 3; ! 3 == ST_XTIE_READY
+                SetGO signal_go, 4; ! 4 == Start command
+                WaitGI signal_gi, 5; ! 5 == ST_TIE_DONE
+            ENDIF
+            
         ENDIF
 
         ! Move to approach (exit) target
