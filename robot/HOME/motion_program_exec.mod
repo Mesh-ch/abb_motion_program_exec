@@ -517,17 +517,7 @@ MODULE motion_program_exec
             WaitGI signal_gi, 3; ! 3 == ST_XTIE_READY
             SetGO signal_go, 4; ! 4 == Start command
             !! Add Trap routine here in case of error
-            WaitGI signal_gi, 5, \MaxTime:=8; ! 5 == ST_TIE_DONE
-            !! If error occurs due to timeout try to reset and pred and retry once
-            IF GInput(signal_gi)=8 THEN
-                TPWrite("Trying to auto reset XTIE error..");
-                SetGO signal_go, 21; ! 21==RESET_ERROR
-                WaitGI signal_gi, 1; ! 1==RESET_STATE
-                SetGO signal_go, 2; ! 2==PRED_TOOL
-                WaitGI signal_gi, 3; ! 3 == ST_XTIE_READY
-                SetGO signal_go, 4; ! 4 == Start command
-                WaitGI signal_gi, 5; ! 5 == ST_TIE_DONE
-            ENDIF
+            WaitGI signal_gi, 5; ! 5 == ST_TIE_DONE
             
         ENDIF
 
