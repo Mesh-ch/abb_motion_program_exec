@@ -1,7 +1,7 @@
 MODULE motion_program_exec
 
     CONST num MOTION_PROGRAM_DRIVER_MODE:=0;
-    
+
     CONST num MOTION_PROGRAM_CMD_NOOP:=0;
     CONST num MOTION_PROGRAM_CMD_MOVEABSJ:=1;
     CONST num MOTION_PROGRAM_CMD_MOVEJ:=2;
@@ -11,22 +11,28 @@ MODULE motion_program_exec
     CONST num MOTION_PROGRAM_CMD_CIRMODE:=6;
     CONST num MOTION_PROGRAM_CMD_SYNCMOVEON:=7;
     CONST num MOTION_PROGRAM_CMD_SYNCMOVEOFF:=8;
-    CONST num MOTION_PROGRAM_CMD_SETDO:=9; !digital output
-    CONST num MOTION_PROGRAM_CMD_MOVELRELTOOL:=10; 
-    CONST num MOTION_PROGRAM_CMD_SETGO:=11; !set group output
-    CONST num MOTION_PROGRAM_CMD_WAITDI:=12; !wait for digital input
-    CONST num MOTION_PROGRAM_CMD_WAITGI:=13; !wait for group input
-    CONST num MOTION_PROGRAM_CMD_CBC:=14; !Run cyclic brake check
-    CONST num MOTION_PROGRAM_CMD_TIE:=15; !Run tying cycle
+    CONST num MOTION_PROGRAM_CMD_SETDO:=9;
+    !digital output
+    CONST num MOTION_PROGRAM_CMD_MOVELRELTOOL:=10;
+    CONST num MOTION_PROGRAM_CMD_SETGO:=11;
+    !set group output
+    CONST num MOTION_PROGRAM_CMD_WAITDI:=12;
+    !wait for digital input
+    CONST num MOTION_PROGRAM_CMD_WAITGI:=13;
+    !wait for group input
+    CONST num MOTION_PROGRAM_CMD_CBC:=14;
+    !Run cyclic brake check
+    CONST num MOTION_PROGRAM_CMD_TIE:=15;
+    !Run tying cycle
 
 
     LOCAL VAR iodev motion_program_io_device;
     LOCAL VAR rawbytes motion_program_bytes;
     LOCAL VAR num motion_program_bytes_offset;
 
-    TASK PERS tooldata motion_program_tool:=[TRUE,[[64.4664,0.233697,734.505],[0.707,0,0,-0.707]],[25,[0,0,300],[1,0,0,0],0,0,0]];
+    TASK PERS tooldata motion_program_tool:=[TRUE,[[64.4664,0.233697,727.505],[0.707,0,0,-0.707]],[25,[0,0,300],[1,0,0,0],0,0,0]];
     TASK PERS wobjdata motion_program_wobj:=[FALSE,TRUE,"ROB_1",[[0,0,0],[1,0,0,0]],[[0,0,0],[1,0,0,0]]];
-    TASK PERS loaddata motion_program_gripload:=[0.001, [0, 0, 0.001],[1, 0, 0, 0], 0, 0, 0];
+    TASK PERS loaddata motion_program_gripload:=[0.001,[0,0,0.001],[1,0,0,0],0,0,0];
 
     LOCAL VAR rmqslot logger_rmq;
 
@@ -50,13 +56,13 @@ MODULE motion_program_exec
     LOCAL VAR string motion_program_filename;
 
     VAR bool motion_program_have_egm:=TRUE;
-    
+
     LOCAL VAR num motion_program_driver_seqno;
-    
+
     LOCAL VAR intnum motion_program_driver_abort_into;
 
     PROC motion_program_main()
-        IF MOTION_PROGRAM_DRIVER_MODE = 0 THEN
+        IF MOTION_PROGRAM_DRIVER_MODE=0 THEN
             motion_program_init;
             run_motion_program_file(motion_program_filename);
             motion_program_fini;
@@ -110,7 +116,7 @@ MODULE motion_program_exec
     PROC run_motion_program_file(string filename)
         ErrWrite\I,"Motion Program Begin","Motion Program Begin";
         close_motion_program_file;
-        open_motion_program_file filename, FALSE;
+        open_motion_program_file filename,FALSE;
         ErrWrite\I,"Motion Program Start Program","Motion Program Start Program timestamp: "+motion_program_state{task_ind}.program_timestamp;
         IF task_ind=1 THEN
             motion_program_req_log_start;
@@ -122,7 +128,7 @@ MODULE motion_program_exec
         ENDIF
     ENDPROC
 
-    PROC open_motion_program_file(string filename, bool preempt)
+    PROC open_motion_program_file(string filename,bool preempt)
         VAR num ver;
         VAR tooldata mtool;
         VAR wobjdata mwobj;
@@ -152,7 +158,7 @@ MODULE motion_program_exec
             ErrWrite "Invalid Motion Program Wobj","Invalid motion program wobj";
             RAISE ERR_INVALID_MP_FILE;
         ENDIF
-        
+
         IF NOT try_motion_program_read_ld(mgripload) THEN
             ErrWrite "Invalid Motion Program GripLoad","Invalid motion program gripload";
             RAISE ERR_INVALID_MP_FILE;
@@ -167,7 +173,7 @@ MODULE motion_program_exec
             ErrWrite "Invalid Motion Program Timestamp","Invalid motion program timestamp";
             RAISE ERR_INVALID_MP_FILE;
         ENDIF
-        
+
         IF NOT preempt THEN
             motion_program_state{task_ind}.program_seqno:=seqno;
             motion_program_state{task_ind}.program_timestamp:=timestamp;
@@ -177,16 +183,16 @@ MODULE motion_program_exec
         ENDIF
 
         ErrWrite\I,"Motion Program Opened","Motion Program Opened with timestamp: "+timestamp;
-        
+
         IF NOT preempt THEN
             motion_program_tool:=mtool;
             motion_program_wobj:=mwobj;
             motion_program_gripload:=mgripload;
-    
+
             SetSysData motion_program_tool;
             SetSysData motion_program_wobj;
             GripLoad motion_program_gripload;
-    
+
             IF motion_program_have_egm THEN
                 motion_program_egm_enable;
             ELSE
@@ -205,7 +211,7 @@ MODULE motion_program_exec
                 RAISE ERR_INVALID_MP_FILE;
             ENDIF
         ENDIF
-        
+
     ENDPROC
 
     PROC close_motion_program_file()
@@ -366,13 +372,13 @@ MODULE motion_program_exec
         ) THEN
             RETURN FALSE;
         ENDIF
-        ConfL \Off;
+        ConfL\Off;
         IF IsSyncMoveOn() THEN
             TriggL rt,\ID:=cmd_num,sd,motion_trigg_data,zd,motion_program_tool\Wobj:=motion_program_wobj;
         ELSE
             TriggL rt,sd,motion_trigg_data,zd,motion_program_tool\WObj:=motion_program_wobj;
         ENDIF
-        ConfL \On;
+        ConfL\On;
         RETURN TRUE;
 
     ENDFUNC
@@ -398,7 +404,7 @@ MODULE motion_program_exec
         RETURN TRUE;
 
     ENDFUNC
-    
+
     FUNC bool set_do(num cmd_num)
         VAR string signal_name;
         VAR signaldo signal_do;
@@ -409,8 +415,8 @@ MODULE motion_program_exec
         ) THEN
             RETURN FALSE;
         ENDIF
-        AliasIO signal_name, signal_do;
-        SetDO signal_do, signal_value;
+        AliasIO signal_name,signal_do;
+        SetDO signal_do,signal_value;
         RETURN TRUE;
     ENDFUNC
 
@@ -424,8 +430,8 @@ MODULE motion_program_exec
         ) THEN
             RETURN FALSE;
         ENDIF
-        AliasIO signal_name, signal_go;
-        SetGO signal_go, signal_value;
+        AliasIO signal_name,signal_go;
+        SetGO signal_go,signal_value;
         RETURN TRUE;
     ENDFUNC
 
@@ -439,12 +445,12 @@ MODULE motion_program_exec
         ) THEN
             RETURN FALSE;
         ENDIF
-        AliasIO signal_name, signal_di;
-        WaitDI signal_di, signal_value;
+        AliasIO signal_name,signal_di;
+        WaitDI signal_di,signal_value;
         RETURN TRUE;
     ENDFUNC
 
-    
+
     FUNC bool wait_gi(num cmd_num)
         VAR string signal_name;
         VAR signalgi signal_gi;
@@ -455,11 +461,11 @@ MODULE motion_program_exec
         ) THEN
             RETURN FALSE;
         ENDIF
-        AliasIO signal_name, signal_gi;
-        WaitGI signal_gi, signal_value;
+        AliasIO signal_name,signal_gi;
+        WaitGI signal_gi,signal_value;
         RETURN TRUE;
     ENDFUNC
-    
+
     FUNC bool move_reltool(num cmd_num)
         ! Move robot away in Z by given distance
         VAR robtarget rt;
@@ -469,11 +475,11 @@ MODULE motion_program_exec
             try_motion_program_read_sd(sd)
             AND try_motion_program_read_num(offset_distance)
             ) THEN
-                RETURN FALSE;
+            RETURN FALSE;
         ENDIF
-        rt := CRobT(\Tool:=motion_program_tool,\WObj:=motion_program_wobj);
+        rt:=CRobT(\Tool:=motion_program_tool,\WObj:=motion_program_wobj);
         ConfL\Off;
-        MoveL RelTool(rt, 0, 0, offset_distance), sd, fine, motion_program_tool \WObj:=motion_program_wobj;
+        MoveL RelTool(rt,0,0,offset_distance),sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         ConfL\On;
         RETURN TRUE;
     ENDFUNC
@@ -482,18 +488,25 @@ MODULE motion_program_exec
         CyclicBrakeCheck;
         RETURN TRUE;
     ENDFUNC
-    
+
     FUNC bool run_tying_cycle(num cmd_num)
         VAR robtarget rt;
+        VAR robtarget corrected_rt;
         VAR robtarget approach_rt;
+        VAR robtarget rotated_approach_rt;
         VAR speeddata sd;
         VAR zonedata zd;
         VAR signalgi signal_gi;
         VAR signalgo signal_go;
         VAR num approach_offsetZ:=150;
         VAR num no_tie;
+        VAR num tying_offsetX;
+        VAR num tying_offsetY;
+        VAR num tying_offsetZ;
         VAR string state_signal_str:="xtie_state";
         VAR string command_signal_str:="xtie_command";
+        VAR bool offset_too_large;
+        CONST num tying_gap_distance:=5;
         IF NOT (
             try_motion_program_read_rt(rt)
             AND try_motion_program_read_sd(sd)
@@ -501,34 +514,58 @@ MODULE motion_program_exec
             AND try_motion_program_read_num(approach_offsetZ)
             AND try_motion_program_read_num(no_tie)
             ) THEN
-                RETURN FALSE;
-        ENDIF
-        
-        approach_rt := RelTool(rt, 0, 0, approach_offsetZ);
-        ConfL \Off;
-        ! Move to approach target
-        MoveL approach_rt,sd,z50,motion_program_tool\WObj:=motion_program_wobj;
-        ! Move to tying target
-        MoveL rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
-        ! Check tying tool state and send tying command
-        if no_tie=0 THEN
-            AliasIO state_signal_str, signal_gi;
-            AliasIO command_signal_str, signal_go;
-            WaitGI signal_gi, 3; ! 3 == ST_XTIE_READY
-            SetGO signal_go, 4; ! 4 == Start command
-            !! Add Trap routine here in case of error
-            WaitGI signal_gi, 5; ! 5 == ST_TIE_DONE
-            
+            RETURN FALSE;
         ENDIF
 
-        ! Move to approach (exit) target
-        MoveL approach_rt,sd,z50,motion_program_tool\WObj:=motion_program_wobj;
-        ! Clear xtie tool
-        if no_tie=0 THEN
-            SetGO signal_go, 7; ! 7 == Clear command
+        approach_rt:=RelTool(rt,0,0,approach_offsetZ);
+        rotated_approach_rt:=RelTool(rt,0,0,0,\Rz:=90);
+        ConfL\Off;
+        ! Move to approach target & turn on laser
+        MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,1;
+        StopMove;
+        WaitTime 2;
+        tying_offsetZ:=AOutput(oxm_distance_to_bar)-tying_gap_distance;
+        tying_offsetX:=AOutput(oxm_vertical_bar_x);
+        MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+        StopMove;
+        WaitTime 2;
+        tying_offsetY:=AOutput(oxm_vertical_bar_x);
+        ! measuring the horizontal bar now but same measurement output is used.
+        MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,0;
+        offset_too_large:=tying_offsetZ>abs(approach_offsetZ)+20 OR tying_offsetZ<abs(approach_offsetZ)-20 OR ABS(tying_offsetX)>25 OR ABS(tying_offsetY)>25;
+        IF offset_too_large THEN
+            TPWrite "WARNING offsets too large, potential collision!";
+            TPWrite "X:"+NumToStr(tying_offsetX,1)+"Y:"+NumToStr(tying_offsetY,1)+"Z:"+NumToStr(tying_offsetZ,1);
+            TPWrite "Skipping target!";
+        ELSE
+            corrected_rt:=RelTool(approach_rt,-tying_offsetX,0,tying_offsetZ);
+            StartMove;
+            ! Move to tying target
+            MoveL corrected_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+            ! Check tying tool state and send tying command
+            if no_tie=0 THEN
+                AliasIO state_signal_str,signal_gi;
+                AliasIO command_signal_str,signal_go;
+                WaitGI signal_gi,3;
+                ! 3 == ST_XTIE_READY
+                SetGO signal_go,4;
+                ! 4 == Start command
+                !! Add Trap routine here in case of error
+                WaitGI signal_gi,5;
+                ! 5 == ST_TIE_DONE
+            ENDIF
+
+            ! Move to approach (exit) target
+            IF no_tie=0 THEN
+                ! Move to approach (exit) target and only clear once at the target
+                MoveLGO approach_rt,sd,z50,motion_program_tool\WObj:=motion_program_wobj,signal_go,\Value:=7;
+            ELSE
+                MoveL approach_rt,sd,z50,motion_program_tool\WObj:=motion_program_wobj;
+            ENDIF
         ENDIF
-        ConfL \On;
-        
+
+        ConfL\On;
+
         IF task_ind=1 THEN
             SetAO motion_program_current_cmd_num,cmd_num;
         ENDIF
@@ -704,8 +741,8 @@ MODULE motion_program_exec
         td.robhold:=robhold_num<>0;
         RETURN TRUE;
     ENDFUNC
-    
-    FUNC bool try_motion_program_read_ld(INOUT loaddata ld)        
+
+    FUNC bool try_motion_program_read_ld(INOUT loaddata ld)
         IF NOT (
             try_motion_program_read_num(ld.mass)
             AND try_motion_program_read_num(ld.cog.x)
@@ -835,8 +872,8 @@ MODULE motion_program_exec
         VAR string msg{2};
         msg{1}:=motion_program_state{task_ind}.program_timestamp;
         msg{2}:=motion_program_state{task_ind}.program_timestamp;
-        IF MOTION_PROGRAM_DRIVER_MODE = 1 THEN
-            msg{2} := "motion_program---seqno-" + NumToStr(motion_program_state{task_ind}.program_seqno,0);
+        IF MOTION_PROGRAM_DRIVER_MODE=1 THEN
+            msg{2}:="motion_program---seqno-"+NumToStr(motion_program_state{task_ind}.program_seqno,0);
         ENDIF
         RMQSendMessage logger_rmq,msg;
     ENDPROC
@@ -855,17 +892,17 @@ MODULE motion_program_exec
                 ELSE
                     filename:=StrFormat("motion_program2_p{1}"\Arg1:=NumToStr(motion_program_preempt,0));
                 ENDIF
-                IF MOTION_PROGRAM_DRIVER_MODE = 1 THEN
-                    filename:= filename + "---seqno-" + NumToStr(motion_program_state{task_ind}.program_seqno,0);
+                IF MOTION_PROGRAM_DRIVER_MODE=1 THEN
+                    filename:=filename+"---seqno-"+NumToStr(motion_program_state{task_ind}.program_seqno,0);
                 ENDIF
-                filename:=filename + ".bin";
+                filename:=filename+".bin";
                 ErrWrite\I,"Preempting Motion Program","Preempting motion program with file "+filename;
                 IF task_ind=1 THEN
                     SetAO motion_program_preempt_current,motion_program_preempt;
                 ENDIF
                 motion_program_state{task_ind}.preempt_current:=motion_program_preempt;
                 close_motion_program_file;
-                open_motion_program_file filename, TRUE;
+                open_motion_program_file filename,TRUE;
             ELSEIF motion_max_cmd_ind>motion_program_preempt_cmd_num THEN
                 ErrWrite "Missed Preempt","Preempt command number missed";
                 RAISE ERR_MISSED_PREEMPT;
@@ -907,49 +944,49 @@ MODULE motion_program_exec
     ENDPROC
 
     PROC motion_program_main_driver_mode()
-        IDelete motion_program_driver_abort_into;        
+        IDelete motion_program_driver_abort_into;
         CONNECT motion_program_driver_abort_into WITH motion_program_abort_driver_mode;
         motion_program_driver_seqno:=-1;
         motion_program_init;
         motion_program_egm_start_stream;
-        WaitUntil motion_program_seqno_command > motion_program_seqno_started AND motion_program_driver_abort = 0;
-        SetAO motion_program_seqno_started, motion_program_seqno_command;
-        ISignalDO motion_program_driver_abort, 1, motion_program_driver_abort_into;
+        WaitUntil motion_program_seqno_command>motion_program_seqno_started AND motion_program_driver_abort=0;
+        SetAO motion_program_seqno_started,motion_program_seqno_command;
+        ISignalDO motion_program_driver_abort,1,motion_program_driver_abort_into;
         motion_program_driver_seqno:=motion_program_seqno_command;
         ErrWrite\I,"Motion Program Driver Begin Program",StrFormat("Motion Program Driver Begin Program seqno "\Arg1:=NumToStr(motion_program_driver_seqno,0));
         IF task_ind=1 THEN
-            motion_program_filename:="motion_program---seqno-" + NumToStr(motion_program_driver_seqno,0) + ".bin";
+            motion_program_filename:="motion_program---seqno-"+NumToStr(motion_program_driver_seqno,0)+".bin";
         ELSEIF task_ind=2 THEN
-            motion_program_filename:="motion_program2---seqno-" + NumToStr(motion_program_driver_seqno,0) +  ".bin";
+            motion_program_filename:="motion_program2---seqno-"+NumToStr(motion_program_driver_seqno,0)+".bin";
         ENDIF
         run_motion_program_file(motion_program_filename);
         !motion_program_reset_handler;
         motion_program_fini_driver_mode;
         ExitCycle;
     ERROR
-        IF motion_program_driver_seqno > motion_program_seqno_complete THEN
-            SetAO motion_program_seqno_complete, motion_program_driver_seqno;
+        IF motion_program_driver_seqno>motion_program_seqno_complete THEN
+            SetAO motion_program_seqno_complete,motion_program_driver_seqno;
             ErrWrite\I,"Motion Program Driver Program Complete","Motion Program Complete";
         ENDIF
-        RAISE;
+        RAISE ;
     ENDPROC
-    
+
     PROC motion_program_fini_driver_mode()
-        IF MOTION_PROGRAM_DRIVER_MODE = 1 THEN
-            IF motion_program_driver_seqno > motion_program_seqno_complete THEN
-                SetAO motion_program_seqno_complete, motion_program_driver_seqno;
+        IF MOTION_PROGRAM_DRIVER_MODE=1 THEN
+            IF motion_program_driver_seqno>motion_program_seqno_complete THEN
+                SetAO motion_program_seqno_complete,motion_program_driver_seqno;
                 ErrWrite\I,"Motion Program Driver Program Complete","Motion Program Complete";
             ENDIF
         ENDIF
     ENDPROC
-    
+
     TRAP motion_program_abort_driver_mode
         motion_program_fini_driver_mode;
         ExitCycle;
     ENDTRAP
-    
+
     PROC motion_program_stop_handler()
-        
+
     ENDPROC
-    
+
 ENDMODULE
