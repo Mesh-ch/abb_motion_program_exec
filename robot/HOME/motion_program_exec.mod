@@ -526,10 +526,12 @@ MODULE motion_program_exec
         WaitTime 2;
         tying_offsetZ:=AOutput(oxm_distance_to_bar)-tying_gap_distance;
         tying_offsetX:=AOutput(oxm_vertical_bar_x);
+        StartMove;
         MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         StopMove;
         WaitTime 2;
         tying_offsetY:=AOutput(oxm_vertical_bar_x);
+        StartMove;
         ! measuring the horizontal bar now but same measurement output is used.
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,0;
         offset_too_large:=tying_offsetZ>abs(approach_offsetZ)+20 OR tying_offsetZ<abs(approach_offsetZ)-20 OR ABS(tying_offsetX)>25 OR ABS(tying_offsetY)>25;
