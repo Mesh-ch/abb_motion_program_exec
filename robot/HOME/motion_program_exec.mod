@@ -518,7 +518,7 @@ MODULE motion_program_exec
         ENDIF
 
         approach_rt:=RelTool(rt,0,0,approach_offsetZ);
-        rotated_approach_rt:=RelTool(rt,0,0,0,\Rz:=90);
+        rotated_approach_rt:=RelTool(approach_rt,0,0,0,\Rz:=90);
         ConfL\Off;
         ! Move to approach target & turn on laser
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,1;
