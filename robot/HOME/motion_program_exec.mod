@@ -1,5 +1,5 @@
 MODULE motion_program_exec
-
+    PERS num tying_target_counter;
     CONST num MOTION_PROGRAM_DRIVER_MODE:=0;
 
     CONST num MOTION_PROGRAM_CMD_NOOP:=0;
@@ -103,14 +103,11 @@ MODULE motion_program_exec
         TriggInt motion_trigg_data,0.001,\Start,motion_trigg_intno;
         RMQFindSlot logger_rmq,"RMQ_logger";
         try_motion_program_egm_init;
-        SetDO motion_program_completed, 0;
     ENDPROC
 
     PROC motion_program_fini()
-        TPWrite "Motion Program Complete";
         ErrWrite\I,"Motion Program Complete","Motion Program Complete";
         IDelete motion_trigg_intno;
-        SetDO motion_program_completed, 1;
     ENDPROC
 
     PROC run_motion_program_file(string filename)
@@ -506,17 +503,22 @@ MODULE motion_program_exec
         VAR string state_signal_str:="xtie_state";
         VAR string command_signal_str:="xtie_command";
         VAR bool offset_too_large;
+        VAR num tying_target_idx;
+        
         CONST num tying_gap_distance:=5;
+        CONST num max_deviation_xy:=25;
+
         IF NOT (
             try_motion_program_read_rt(rt)
             AND try_motion_program_read_sd(sd)
             AND try_motion_program_read_zd(zd)
             AND try_motion_program_read_num(approach_offsetZ)
             AND try_motion_program_read_num(no_tie)
+            AND try_motion_program_read_num(tying_target_idx)
             ) THEN
             RETURN FALSE;
         ENDIF
-
+        tying_target_counter := tying_target_idx;
         approach_rt:=RelTool(rt,0,0,approach_offsetZ);
         rotated_approach_rt:=RelTool(approach_rt,0,0,0,\Rz:=90);
         ConfL\Off;
@@ -534,14 +536,14 @@ MODULE motion_program_exec
         StartMove;
         ! measuring the horizontal bar now but same measurement output is used.
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,0;
-        offset_too_large:=tying_offsetZ>abs(approach_offsetZ)+20 OR tying_offsetZ<abs(approach_offsetZ)-20 OR ABS(tying_offsetX)>25 OR ABS(tying_offsetY)>25;
+        offset_too_large:=tying_offsetZ>abs(approach_offsetZ)+max_deviation_xy OR tying_offsetZ<abs(approach_offsetZ)-max_deviation_xy OR ABS(tying_offsetX)>max_deviation_xy OR ABS(tying_offsetY)>max_deviation_xy;
         IF offset_too_large THEN
             TPWrite "WARNING offsets too large, potential collision!";
             TPWrite "X:"+NumToStr(tying_offsetX,1)+"Y:"+NumToStr(tying_offsetY,1)+"Z:"+NumToStr(tying_offsetZ,1);
             TPWrite "Skipping target!";
+            ErrWrite\I,"Skipping target:"+NumToStr(tying_target_counter,0),"Skipping target due to measurement offsets being too large!" \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1);
         ELSE
             corrected_rt:=RelTool(approach_rt,-tying_offsetX,0,tying_offsetZ);
-            StartMove;
             ! Move to tying target
             MoveL corrected_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             ! Check tying tool state and send tying command
@@ -567,7 +569,7 @@ MODULE motion_program_exec
         ENDIF
 
         ConfL\On;
-
+        tying_target_counter := tying_target_counter + 1;
         IF task_ind=1 THEN
             SetAO motion_program_current_cmd_num,cmd_num;
         ENDIF
