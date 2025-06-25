@@ -337,7 +337,6 @@ class RunTieCommand(CommandBase):
         f.write(approach_offset_b)
         f.write(no_tie_b)
         f.write(tying_idx_b)
-        f.write(no_tie_b)
         f.write(clockwise_b)
 
     def to_rapid(self, sync_move = False, cmd_num = 0, **kwargs):
