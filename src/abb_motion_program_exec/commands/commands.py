@@ -320,6 +320,7 @@ class RunTieCommand(CommandBase):
     approach_offset: float
     no_tie: bool
     tying_idx: int
+    clockwise: bool
 
     def write_params(self, f: io.IOBase):
         to_point_b = util.robtarget_to_bin(self.to_point)
@@ -328,14 +329,16 @@ class RunTieCommand(CommandBase):
         approach_offset_b = util.num_to_bin(self.approach_offset)
         no_tie_b = util.num_to_bin(1 if self.no_tie else 0)
         tying_idx_b = util.num_to_bin(self.tying_idx)
-
+        clockwise_b = util.num_to_bin(1 if self.clockwise else 0)
+        
         f.write(to_point_b)
         f.write(speed_b)
         f.write(zone_b)
         f.write(approach_offset_b)
         f.write(no_tie_b)
         f.write(tying_idx_b)
-        
+        f.write(no_tie_b)
+        f.write(clockwise_b)
 
     def to_rapid(self, sync_move = False, cmd_num = 0, **kwargs):
         to_point_str = self.to_point.to_rapid()

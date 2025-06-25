@@ -497,6 +497,7 @@ MODULE motion_program_exec
         VAR signalgo signal_go;
         VAR num approach_offsetZ:=150;
         VAR num no_tie;
+        VAR num rotate_clockwise;
         VAR num tying_offsetX;
         VAR num tying_offsetY;
         VAR num tying_offsetZ;
@@ -504,9 +505,9 @@ MODULE motion_program_exec
         VAR string command_signal_str:="xtie_command";
         VAR bool offset_too_large;
         VAR num tying_target_idx;
-        
+        CONST num sensor_rotation_angle:=90;
         CONST num tying_gap_distance:=5;
-        CONST num max_deviation_xy:=25;
+        CONST num max_deviation_xy:=30;
 
         IF NOT (
             try_motion_program_read_rt(rt)
@@ -515,24 +516,29 @@ MODULE motion_program_exec
             AND try_motion_program_read_num(approach_offsetZ)
             AND try_motion_program_read_num(no_tie)
             AND try_motion_program_read_num(tying_target_idx)
+            AND try_motion_program_read_num(rotate_clockwise)
             ) THEN
             RETURN FALSE;
         ENDIF
         tying_target_counter := tying_target_idx;
         approach_rt:=RelTool(rt,0,0,approach_offsetZ);
-        rotated_approach_rt:=RelTool(approach_rt,0,0,0,\Rz:=90);
+        IF rotate_clockwise=1 THEN
+            rotated_approach_rt:=RelTool(approach_rt,0,0,0,\Rz:=sensor_rotation_angle);
+        ELSE
+            rotated_approach_rt:=RelTool(approach_rt,0,0,0,\Rz:=-sensor_rotation_angle);
+        ENDIF
         ConfL\Off;
         ! Move to approach target & turn on laser
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,1;
         StopMove;
-        WaitTime 2;
+        WaitTime 1;
         tying_offsetZ:=AOutput(oxm_distance_to_bar)-tying_gap_distance;
         tying_offsetX:=AOutput(oxm_vertical_bar_x);
         StartMove;
         MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         StopMove;
-        WaitTime 2;
-        tying_offsetY:=AOutput(oxm_vertical_bar_x);
+        WaitTime 1;
+        tying_offsetY:=AOutput(oxm_horizontal_bar_x);
         StartMove;
         ! measuring the horizontal bar now but same measurement output is used.
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,0;
@@ -543,7 +549,7 @@ MODULE motion_program_exec
             TPWrite "Skipping target!";
             ErrWrite\I,"Skipping target:"+NumToStr(tying_target_counter,0),"Skipping target due to measurement offsets being too large!" \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1);
         ELSE
-            corrected_rt:=RelTool(approach_rt,-tying_offsetX,0,tying_offsetZ);
+            corrected_rt:=RelTool(approach_rt,-tying_offsetX,-tying_offsetY, tying_offsetZ);
             ! Move to tying target
             MoveL corrected_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             ! Check tying tool state and send tying command
