@@ -538,7 +538,12 @@ MODULE motion_program_exec
         MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         StopMove;
         WaitTime 1;
-        tying_offsetY:=AOutput(oxm_horizontal_bar_x);
+        IF rotate_clockwise=1 THEN
+            tying_offsetY:=AOutput(oxm_horizontal_bar_x);
+        ELSE
+            tying_offsetY:=-1*AOutput(oxm_horizontal_bar_x); ! flip sign
+        ENDIF
+        
         StartMove;
         ! measuring the horizontal bar now but same measurement output is used.
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,0;
