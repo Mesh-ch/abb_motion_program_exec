@@ -520,10 +520,10 @@ MODULE motion_program_exec
         VAR num error_z;
         CONST num sensor_rotation_angle:=90;
         CONST num tying_gap_distance:=5;
-        CONST num max_deviation_xy:=30;
+        CONST num max_deviation_xy:=35;
         CONST num max_deviation_z:=20;
         CONST num min_accuracy:=40;
-        CONST num search_distance:=10; !mm
+        CONST num search_distance:=20; !mm
 
         IF NOT (
             try_motion_program_read_rt(rt)
@@ -613,8 +613,8 @@ MODULE motion_program_exec
             ErrWrite\I,"Skipping target:"+NumToStr(tying_target_counter,0),
                 "Skipping target due to measurement offsets being too large!"
                 \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1),
-                \RL3:= "horizontal =" +ValToStr(horizontal_bar_inaccurate),
-                \RL4:= "vertical =" +ValToStr(vertical_bar_inaccurate);
+                \RL3:= "horizontal inaccurate =" +ValToStr(horizontal_bar_inaccurate),
+                \RL4:= "vertical inaccurate =" +ValToStr(vertical_bar_inaccurate);
         ELSE
             ErrWrite\I,"adjusting target:"+NumToStr(tying_target_counter,0),
                 "dx: "+NumToStr(tying_offsetX,1),
