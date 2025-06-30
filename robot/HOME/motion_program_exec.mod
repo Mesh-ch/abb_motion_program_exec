@@ -521,9 +521,9 @@ MODULE motion_program_exec
         CONST num sensor_rotation_angle:=90;
         CONST num tying_gap_distance:=5;
         CONST num max_deviation_xy:=35;
-        CONST num max_deviation_z:=20;
+        CONST num max_deviation_z:=40;
         CONST num min_accuracy:=40;
-        CONST num search_distance:=30; !mm
+        CONST num search_distance:=20; !mm
 
         IF NOT (
             try_motion_program_read_rt(rt)
@@ -547,7 +547,7 @@ MODULE motion_program_exec
         ! Move to approach target & turn on laser
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,1;
         StopMove;
-        WaitTime 1;
+        waittime 1.5;
         WaitDO oxm_is_available,1,\MaxTime:=5;
          ! Check if profile is accurate
         IF matching_accuracy<min_accuracy THEN
@@ -557,7 +557,7 @@ MODULE motion_program_exec
             StartMove;
             MoveL search_vertical_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             StopMove;
-            WaitTime 1;
+            waittime 1.5;
             IF matching_accuracy>min_accuracy THEN
                 vertical_bar_inaccurate:=False;
             ElSE
@@ -573,7 +573,7 @@ MODULE motion_program_exec
         StartMove;
         MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         StopMove;
-        WaitTime 1;
+        waittime 1.5;
         ! Check if profile is accurate
         IF matching_accuracy<min_accuracy THEN
             ! Try moving in Y 10mm
@@ -582,7 +582,7 @@ MODULE motion_program_exec
             StartMove;
             MoveL search_horizontal_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             StopMove;
-            WaitTime 1;
+            waittime 1.5;
             StartMove;
             MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             IF matching_accuracy>min_accuracy THEN
@@ -613,8 +613,8 @@ MODULE motion_program_exec
             ErrWrite\I,"Skipping target:"+NumToStr(tying_target_counter,0),
                 "Skipping target due to measurement offsets being too large!"
                 \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1),
-                \RL3:= "horizontal inaccurate =" +ValToStr(horizontal_bar_inaccurate),
-                \RL4:= "vertical inaccurate =" +ValToStr(vertical_bar_inaccurate);
+                \RL3:= "Max error z" + NumToStr(max_deviation_z,1) + "max error xy:" + NumToStr(max_deviation_xy,1),
+                \RL4:= "profile inaccurate H:" +ValToStr(horizontal_bar_inaccurate) + "V:" +ValToStr(vertical_bar_inaccurate);
         ELSE
             ErrWrite\I,"adjusting target:"+NumToStr(tying_target_counter,0),
                 "dx: "+NumToStr(tying_offsetX,1),
