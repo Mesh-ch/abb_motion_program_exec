@@ -523,7 +523,7 @@ MODULE motion_program_exec
         CONST num max_deviation_xy:=35;
         CONST num max_deviation_z:=20;
         CONST num min_accuracy:=40;
-        CONST num search_distance:=20; !mm
+        CONST num search_distance:=30; !mm
 
         IF NOT (
             try_motion_program_read_rt(rt)
