@@ -547,7 +547,7 @@ MODULE motion_program_exec
         ! Move to approach target & turn on laser
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,1;
         StopMove;
-        waittime 1.5;
+        WaitTime 1.5;
         WaitDO oxm_is_available,1,\MaxTime:=5;
          ! Check if profile is accurate
         IF matching_accuracy<min_accuracy THEN
@@ -557,7 +557,7 @@ MODULE motion_program_exec
             StartMove;
             MoveL search_vertical_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             StopMove;
-            waittime 1.5;
+            WaitTime 1.5;
             IF matching_accuracy>min_accuracy THEN
                 vertical_bar_inaccurate:=False;
             ElSE
@@ -573,7 +573,7 @@ MODULE motion_program_exec
         StartMove;
         MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         StopMove;
-        waittime 1.5;
+        WaitTime 1.5;
         ! Check if profile is accurate
         IF matching_accuracy<min_accuracy THEN
             ! Try moving in Y 10mm
@@ -582,7 +582,7 @@ MODULE motion_program_exec
             StartMove;
             MoveL search_horizontal_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             StopMove;
-            waittime 1.5;
+            WaitTime 1.5;
             StartMove;
             MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             IF matching_accuracy>min_accuracy THEN
@@ -607,12 +607,12 @@ MODULE motion_program_exec
         offset_too_large:=abs(error_z)>max_deviation_z OR ABS(tying_offsetX)>max_deviation_xy OR ABS(tying_offsetY)>max_deviation_xy;
         IF offset_too_large OR horizontal_bar_inaccurate OR vertical_bar_inaccurate THEN
             TPWrite "WARNING offsets too large or maybe NaN, potential collision!";
-            TPWrite "X:"+NumToStr(tying_offsetX,1)+"Y:"+NumToStr(tying_offsetY,1)+"Z:"+NumToStr(tying_offsetZ,1);
+            TPWrite "X:"+NumToStr(tying_offsetX,1)+"Y:"+NumToStr(tying_offsetY,1)+"Z:"+NumToStr(tying_offsetZ,1) +"(" +  NumToStr(offset_distance-tying_gap_distance,1) + ")";
             TPWrite "Skipping target! - horizontal_bar_inaccurate =",\Bool:=horizontal_bar_inaccurate;
             TPWrite "Skipping target! - vertical_bar_inaccurate =",\Bool:=vertical_bar_inaccurate;
             ErrWrite\I,"Skipping target:"+NumToStr(tying_target_counter,0),
                 "Skipping target due to measurement offsets being too large!"
-                \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1),
+                \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1) +" (" +  NumToStr(offset_distance-tying_gap_distance,1) + ")",
                 \RL3:= "Max error z" + NumToStr(max_deviation_z,1) + "max error xy:" + NumToStr(max_deviation_xy,1),
                 \RL4:= "profile inaccurate H:" +ValToStr(horizontal_bar_inaccurate) + "V:" +ValToStr(vertical_bar_inaccurate);
         ELSE
