@@ -107,13 +107,13 @@ MODULE motion_program_exec
         TriggInt motion_trigg_data,0.001,\Start,motion_trigg_intno;
         RMQFindSlot logger_rmq,"RMQ_logger";
         try_motion_program_egm_init;
-        SetDO motion_program_completed, 0;
+        SetDO motion_program_completed,0;
     ENDPROC
 
     PROC motion_program_fini()
         ErrWrite\I,"Motion Program Complete","Motion Program Complete";
         IDelete motion_trigg_intno;
-        SetDO motion_program_completed, 1;
+        SetDO motion_program_completed,1;
     ENDPROC
 
     PROC run_motion_program_file(string filename)
@@ -506,9 +506,9 @@ MODULE motion_program_exec
         VAR num approach_offsetZ:=150;
         VAR num no_tie;
         VAR num rotate_clockwise;
-        VAR num tying_offsetX;
-        VAR num tying_offsetY;
-        VAR num tying_offsetZ;
+        VAR num tying_offsetX:=99999;
+        VAR num tying_offsetY:=99999;
+        VAR num tying_offsetZ:=99999;
         VAR string state_signal_str:="xtie_state";
         VAR string command_signal_str:="xtie_command";
         VAR bool offset_too_large;
@@ -522,8 +522,8 @@ MODULE motion_program_exec
         CONST num tying_gap_distance:=5;
         CONST num max_deviation_xy:=35;
         CONST num max_deviation_z:=40;
-        CONST num min_accuracy:=40;
-        CONST num search_distance:=20; !mm
+        CONST num min_accuracy:=80;
+        CONST num search_distance:=20;!mm
 
         IF NOT (
             try_motion_program_read_rt(rt)
@@ -549,17 +549,19 @@ MODULE motion_program_exec
         StopMove;
         WaitTime 1.5;
         WaitDO oxm_is_available,1,\MaxTime:=5;
-         ! Check if profile is accurate
+        ! Check if profile is accurate
         IF matching_accuracy<min_accuracy THEN
             ! Try moving in Y 10mm
-            ErrWrite \I, "Attempting shift search for vertical bar","Shifting -10mm in Y";
-            search_vertical_rt := RelTool(approach_rt, 0, -search_distance, 0);
+            ErrWrite\I,"Attempting shift search for vertical bar","Shifting -"+ NumToStr(search_distance,0)+" mm in Y";
+            search_vertical_rt:=RelTool(approach_rt,0,-search_distance,0);
             StartMove;
             MoveL search_vertical_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             StopMove;
             WaitTime 1.5;
             IF matching_accuracy>min_accuracy THEN
                 vertical_bar_inaccurate:=False;
+                tying_offsetZ:=z_offset-tying_gap_distance;
+                tying_offsetX:=x_offset;
             ElSE
                 vertical_bar_inaccurate:=TRUE;
             ENDIF
@@ -567,9 +569,9 @@ MODULE motion_program_exec
             MoveL approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         ELSE
             vertical_bar_inaccurate:=FALSE;
+            tying_offsetZ:=z_offset-tying_gap_distance;
+            tying_offsetX:=x_offset;
         ENDIF
-        tying_offsetZ:=z_offset-tying_gap_distance;
-        tying_offsetX:=x_offset;
         StartMove;
         MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         StopMove;
@@ -577,49 +579,52 @@ MODULE motion_program_exec
         ! Check if profile is accurate
         IF matching_accuracy<min_accuracy THEN
             ! Try moving in Y 10mm
-            ErrWrite \I, "Attempting shift search for horizontal bar","Shifting -10mm in Y";
-            search_horizontal_rt := RelTool(rotated_approach_rt, 0, -search_distance, 0);
+            ErrWrite\I,"Attempting shift search for horizontal bar","Shifting -"+ NumToStr(search_distance,0)+"mm in Y";
+            search_horizontal_rt:=RelTool(rotated_approach_rt,0,-search_distance,0);
             StartMove;
             MoveL search_horizontal_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             StopMove;
             WaitTime 1.5;
-            StartMove;
-            MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             IF matching_accuracy>min_accuracy THEN
                 horizontal_bar_inaccurate:=False;
+                IF rotate_clockwise=1 THEN
+                    tying_offsetY:=y_offset;
+                ELSE
+                    tying_offsetY:=-1*y_offset;
+                ENDIF
             ElSE
                 horizontal_bar_inaccurate:=TRUE;
             ENDIF
+            StartMove;
+            MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         ELSE
             horizontal_bar_inaccurate:=FALSE;
+            IF rotate_clockwise=1 THEN
+                tying_offsetY:=y_offset;
+            ELSE
+                tying_offsetY:=-1*y_offset;
+            ENDIF
         ENDIF
-
-        IF rotate_clockwise=1 THEN
-            tying_offsetY:=y_offset;
-        ELSE
-            tying_offsetY:=-1*y_offset;
-        ENDIF
-
         StartMove;
         ! measuring the horizontal bar now but same measurement output is used.
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,0;
-        error_z := abs(approach_offsetZ) - abs(tying_offsetZ);
+        error_z:=abs(approach_offsetZ)-abs(tying_offsetZ);
         offset_too_large:=abs(error_z)>max_deviation_z OR ABS(tying_offsetX)>max_deviation_xy OR ABS(tying_offsetY)>max_deviation_xy;
         IF offset_too_large OR horizontal_bar_inaccurate OR vertical_bar_inaccurate THEN
             TPWrite "WARNING offsets too large or maybe NaN, potential collision!";
-            TPWrite "X:"+NumToStr(tying_offsetX,1)+"Y:"+NumToStr(tying_offsetY,1)+"Z:"+NumToStr(tying_offsetZ,1) +"(" +  NumToStr(offset_distance-tying_gap_distance,1) + ")";
+            TPWrite "X:"+NumToStr(tying_offsetX,1)+"Y:"+NumToStr(tying_offsetY,1)+"Z:"+NumToStr(tying_offsetZ,1)+"("+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")";
             TPWrite "Skipping target! - horizontal_bar_inaccurate =",\Bool:=horizontal_bar_inaccurate;
             TPWrite "Skipping target! - vertical_bar_inaccurate =",\Bool:=vertical_bar_inaccurate;
             ErrWrite\I,"Skipping target:"+NumToStr(tying_target_counter,0),
                 "Skipping target due to measurement offsets being too large!"
-                \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1) +" (" +  NumToStr(offset_distance-tying_gap_distance,1) + ")",
-                \RL3:= "Max error z" + NumToStr(max_deviation_z,1) + "max error xy:" + NumToStr(max_deviation_xy,1),
-                \RL4:= "profile inaccurate H:" +ValToStr(horizontal_bar_inaccurate) + "V:" +ValToStr(vertical_bar_inaccurate);
+                \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1)+" ("+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")",
+                \RL3:="Max error z"+NumToStr(max_deviation_z,1)+"max error xy:"+NumToStr(max_deviation_xy,1),
+                \RL4:="profile inaccurate H:"+ValToStr(horizontal_bar_inaccurate)+"V:"+ValToStr(vertical_bar_inaccurate);
         ELSE
             ErrWrite\I,"adjusting target:"+NumToStr(tying_target_counter,0),
                 "dx: "+NumToStr(tying_offsetX,1),
                 \RL2:=" dy: "+NumToStr(tying_offsetY,1),
-                \RL3:=" dz: "+NumToStr(tying_offsetZ,1);
+                \RL3:=" dz: "+NumToStr(tying_offsetZ,1)+" (~"+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")";
             corrected_rt:=RelTool(approach_rt,-tying_offsetX,-tying_offsetY,tying_offsetZ);
             ! Move to tying target
             MoveL corrected_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
