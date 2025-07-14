@@ -1,6 +1,8 @@
 MODULE motion_program_exec
     PERS num tying_target_counter;
     PERS num skipped_target_counter;
+    CONST num max_targets:=256;
+    PERS num skipped_targets{max_targets};
     VAR clock production_clock;
     VAR num production_time;
     PERS num x_offset;
@@ -116,6 +118,9 @@ MODULE motion_program_exec
         production_time := ClkRead(production_clock);
         SetDO motion_program_completed, 0;
         skipped_target_counter:=0; ! initialize skip counter at program start
+        FOR index FROM 1 TO dim(skipped_targets, 1 ) DO
+            skipped_targets{index} := 0;
+            ENDFOR
     ENDPROC
 
     PROC motion_program_fini()
@@ -643,6 +648,7 @@ MODULE motion_program_exec
                 \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1)+" ("+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")",
                 \RL3:="Max error z"+NumToStr(max_deviation_z,1)+"max error xy:"+NumToStr(max_deviation_xy,1),
                 \RL4:="profile inaccurate H:"+ValToStr(horizontal_bar_inaccurate)+"V:"+ValToStr(vertical_bar_inaccurate);
+            skipped_targets{tying_target_idx} := tying_target_idx;
             Incr skipped_target_counter;
         ELSE
             ErrWrite\I,"adjusting target:"+NumToStr(tying_target_counter,0),
