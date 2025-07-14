@@ -1,5 +1,8 @@
 MODULE motion_program_exec
     PERS num tying_target_counter;
+    PERS num skipped_target_counter;
+    VAR clock production_clock;
+    VAR num production_time;
     PERS num x_offset;
     PERS num y_offset;
     PERS num z_offset;
@@ -107,11 +110,18 @@ MODULE motion_program_exec
         TriggInt motion_trigg_data,0.001,\Start,motion_trigg_intno;
         RMQFindSlot logger_rmq,"RMQ_logger";
         try_motion_program_egm_init;
-        SetDO motion_program_completed,0;
+        ! Initialize the motion program state and log
+        ClkReset production_clock;
+        ClkStart production_clock;
+        production_time := ClkRead(production_clock);
+        SetDO motion_program_completed, 0;
+        skipped_target_counter:=0; ! initialize skip counter at program start
     ENDPROC
 
     PROC motion_program_fini()
-        ErrWrite\I,"Motion Program Complete","Motion Program Complete";
+        ClkStop production_clock;
+        production_time:=ClkRead(production_clock);
+        ErrWrite\I,"Motion Program Complete","Motion Program Completed in "+NumToStr(production_time,0)+" s", \RL2:="Total skipped targets: "+NumToStr(skipped_target_counter,0);
         IDelete motion_trigg_intno;
         SetDO motion_program_completed,1;
     ENDPROC
@@ -505,6 +515,7 @@ MODULE motion_program_exec
         VAR signalgo signal_go;
         VAR num approach_offsetZ:=150;
         VAR num no_tie;
+        VAR num debug_tying;
         VAR num rotate_clockwise;
         VAR num tying_offsetX:=99999;
         VAR num tying_offsetY:=99999;
@@ -533,6 +544,7 @@ MODULE motion_program_exec
             AND try_motion_program_read_num(no_tie)
             AND try_motion_program_read_num(tying_target_idx)
             AND try_motion_program_read_num(rotate_clockwise)
+            AND try_motion_program_read_num(debug_tying)
             ) THEN
             RETURN FALSE;
         ENDIF
@@ -548,7 +560,9 @@ MODULE motion_program_exec
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,1;
         StopMove;
         WaitTime 1.5;
-        WaitDO oxm_is_available,1,\MaxTime:=5;
+        IF debug_tying=1 THEN
+            Stop;
+        ENDIF
         ! Check if profile is accurate
         IF matching_accuracy<min_accuracy THEN
             ! Try moving in Y 10mm
@@ -558,6 +572,9 @@ MODULE motion_program_exec
             MoveL search_vertical_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             StopMove;
             WaitTime 1.5;
+            IF debug_tying=1 THEN
+                Stop;
+            ENDIF
             IF matching_accuracy>min_accuracy THEN
                 vertical_bar_inaccurate:=False;
                 tying_offsetZ:=z_offset-tying_gap_distance;
@@ -576,6 +593,9 @@ MODULE motion_program_exec
         MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         StopMove;
         WaitTime 1.5;
+        IF debug_tying=1 THEN
+            Stop;
+        ENDIF
         ! Check if profile is accurate
         IF matching_accuracy<min_accuracy THEN
             ! Try moving in Y 10mm
@@ -585,6 +605,9 @@ MODULE motion_program_exec
             MoveL search_horizontal_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             StopMove;
             WaitTime 1.5;
+            IF debug_tying=1 THEN
+                Stop;
+            ENDIF
             IF matching_accuracy>min_accuracy THEN
                 horizontal_bar_inaccurate:=False;
                 IF rotate_clockwise=1 THEN
@@ -620,6 +643,7 @@ MODULE motion_program_exec
                 \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1)+" ("+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")",
                 \RL3:="Max error z"+NumToStr(max_deviation_z,1)+"max error xy:"+NumToStr(max_deviation_xy,1),
                 \RL4:="profile inaccurate H:"+ValToStr(horizontal_bar_inaccurate)+"V:"+ValToStr(vertical_bar_inaccurate);
+            Incr skipped_target_counter;
         ELSE
             ErrWrite\I,"adjusting target:"+NumToStr(tying_target_counter,0),
                 "dx: "+NumToStr(tying_offsetX,1),
