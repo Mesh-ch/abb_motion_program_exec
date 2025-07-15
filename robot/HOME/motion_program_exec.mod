@@ -576,7 +576,7 @@ MODULE motion_program_exec
             StartMove;
             MoveL search_vertical_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             StopMove;
-            WaitTime 1.5;
+            WaitTime 2.5;
             IF debug_tying=1 THEN
                 Stop;
             ENDIF
@@ -595,46 +595,51 @@ MODULE motion_program_exec
             tying_offsetX:=x_offset;
         ENDIF
         StartMove;
-        MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
-        StopMove;
-        WaitTime 1.5;
-        IF debug_tying=1 THEN
-            Stop;
-        ENDIF
-        ! Check if profile is accurate
-        IF matching_accuracy<min_accuracy THEN
-            ! Try moving in Y 10mm
-            ErrWrite\I,"Attempting shift search for horizontal bar","Shifting -"+ NumToStr(search_distance,0)+"mm in Y";
-            search_horizontal_rt:=RelTool(rotated_approach_rt,0,-search_distance,0);
-            StartMove;
-            MoveL search_horizontal_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+        if vertical_bar_inaccurate THEN
+            ! skip the horizontal bar measurement
+            ErrWrite\I,"Vertical bar measurement failed", "skipping target early";
+        ELSE
+            MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             StopMove;
             WaitTime 1.5;
             IF debug_tying=1 THEN
                 Stop;
             ENDIF
-            IF matching_accuracy>min_accuracy THEN
-                horizontal_bar_inaccurate:=False;
+            ! Check if profile is accurate
+            IF matching_accuracy<min_accuracy THEN
+                ! Try moving in Y 10mm
+                ErrWrite\I,"Attempting shift search for horizontal bar","Shifting -"+ NumToStr(search_distance,0)+"mm in Y";
+                search_horizontal_rt:=RelTool(rotated_approach_rt,0,-search_distance,0);
+                StartMove;
+                MoveL search_horizontal_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+                StopMove;
+                WaitTime 2.5;
+                IF debug_tying=1 THEN
+                    Stop;
+                ENDIF
+                IF matching_accuracy>min_accuracy THEN
+                    horizontal_bar_inaccurate:=False;
+                    IF rotate_clockwise=1 THEN
+                        tying_offsetY:=y_offset;
+                    ELSE
+                        tying_offsetY:=-1*y_offset;
+                    ENDIF
+                ElSE
+                    horizontal_bar_inaccurate:=TRUE;
+                ENDIF
+                StartMove;
+                MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+            ELSE
+                horizontal_bar_inaccurate:=FALSE;
                 IF rotate_clockwise=1 THEN
                     tying_offsetY:=y_offset;
                 ELSE
                     tying_offsetY:=-1*y_offset;
                 ENDIF
-            ElSE
-                horizontal_bar_inaccurate:=TRUE;
-            ENDIF
-            StartMove;
-            MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
-        ELSE
-            horizontal_bar_inaccurate:=FALSE;
-            IF rotate_clockwise=1 THEN
-                tying_offsetY:=y_offset;
-            ELSE
-                tying_offsetY:=-1*y_offset;
             ENDIF
         ENDIF
+        
         StartMove;
-        ! measuring the horizontal bar now but same measurement output is used.
         MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,0;
         error_z:=abs(approach_offsetZ)-abs(tying_offsetZ);
         offset_too_large:=abs(error_z)>max_deviation_z OR ABS(tying_offsetX)>max_deviation_xy OR ABS(tying_offsetY)>max_deviation_xy;
