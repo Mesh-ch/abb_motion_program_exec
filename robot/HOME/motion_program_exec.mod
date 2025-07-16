@@ -1,5 +1,5 @@
 MODULE motion_program_exec
-    PERS num tying_target_counter;
+    PERS num current_target_idx;
     PERS num skipped_target_counter;
     CONST num max_targets:=256;
     PERS num skipped_targets{max_targets};
@@ -118,6 +118,7 @@ MODULE motion_program_exec
         production_time := ClkRead(production_clock);
         SetDO motion_program_completed, 0;
         skipped_target_counter:=0; ! initialize skip counter at program start
+        current_target_idx:=0;  ! initialize target idx counter at program start
         FOR index FROM 1 TO dim(skipped_targets, 1 ) DO
             skipped_targets{index} := 0;
             ENDFOR
@@ -128,7 +129,9 @@ MODULE motion_program_exec
         production_time:=ClkRead(production_clock);
         ErrWrite\I,"Motion Program Complete","Motion Program Completed in "+NumToStr(production_time,0)+" s", \RL2:="Total skipped targets: "+NumToStr(skipped_target_counter,0);
         IDelete motion_trigg_intno;
+        ! Set finishing parameters
         SetDO motion_program_completed,1;
+        current_target_idx := 0;
     ENDPROC
 
     PROC run_motion_program_file(string filename)
@@ -553,7 +556,7 @@ MODULE motion_program_exec
             ) THEN
             RETURN FALSE;
         ENDIF
-        tying_target_counter:=tying_target_idx;
+        current_target_idx:=tying_target_idx;
         approach_rt:=RelTool(rt,0,0,approach_offsetZ);
         IF rotate_clockwise=1 THEN
             rotated_approach_rt:=RelTool(approach_rt,0,0,0,\Rz:=sensor_rotation_angle);
@@ -648,7 +651,7 @@ MODULE motion_program_exec
             TPWrite "X:"+NumToStr(tying_offsetX,1)+"Y:"+NumToStr(tying_offsetY,1)+"Z:"+NumToStr(tying_offsetZ,1)+"("+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")";
             TPWrite "Skipping target! - horizontal_bar_inaccurate =",\Bool:=horizontal_bar_inaccurate;
             TPWrite "Skipping target! - vertical_bar_inaccurate =",\Bool:=vertical_bar_inaccurate;
-            ErrWrite\I,"Skipping target:"+NumToStr(tying_target_counter,0),
+            ErrWrite\I,"Skipping target:"+NumToStr(current_target_idx,0),
                 "Skipping target due to measurement offsets being too large!"
                 \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1)+" ("+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")",
                 \RL3:="Max error z"+NumToStr(max_deviation_z,1)+"max error xy:"+NumToStr(max_deviation_xy,1),
@@ -656,7 +659,7 @@ MODULE motion_program_exec
             skipped_targets{tying_target_idx} := tying_target_idx;
             Incr skipped_target_counter;
         ELSE
-            ErrWrite\I,"adjusting target:"+NumToStr(tying_target_counter,0),
+            ErrWrite\I,"adjusting target:"+NumToStr(current_target_idx,0),
                 "dx: "+NumToStr(tying_offsetX,1),
                 \RL2:=" dy: "+NumToStr(tying_offsetY,1),
                 \RL3:=" dz: "+NumToStr(tying_offsetZ,1)+" (~"+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")";
@@ -686,7 +689,6 @@ MODULE motion_program_exec
         ENDIF
 
         ConfL\On;
-        tying_target_counter:=tying_target_counter+1;
         IF task_ind=1 THEN
             SetAO motion_program_current_cmd_num,cmd_num;
         ENDIF
