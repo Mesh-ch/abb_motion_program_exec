@@ -543,7 +543,8 @@ MODULE motion_program_exec
         CONST num max_deviation_z:=40;
         CONST num min_accuracy:=80;
         CONST num search_distance:=20;!mm
-
+        VAR num profile_vertical_accuracy;
+        VAR num profile_horizontal_accuracy;
         IF NOT (
             try_motion_program_read_rt(rt)
             AND try_motion_program_read_sd(sd)
@@ -590,12 +591,14 @@ MODULE motion_program_exec
             ElSE
                 vertical_bar_inaccurate:=TRUE;
             ENDIF
+            profile_vertical_accuracy := matching_accuracy;
             StartMove;
             MoveL approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
         ELSE
             vertical_bar_inaccurate:=FALSE;
             tying_offsetZ:=z_offset-tying_gap_distance;
             tying_offsetX:=x_offset;
+            profile_vertical_accuracy := matching_accuracy;
         ENDIF
         StartMove;
         if vertical_bar_inaccurate THEN
@@ -630,10 +633,12 @@ MODULE motion_program_exec
                 ElSE
                     horizontal_bar_inaccurate:=TRUE;
                 ENDIF
+                profile_horizontal_accuracy := matching_accuracy;
                 StartMove;
                 MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             ELSE
                 horizontal_bar_inaccurate:=FALSE;
+                profile_horizontal_accuracy := matching_accuracy;
                 IF rotate_clockwise=1 THEN
                     tying_offsetY:=y_offset;
                 ELSE
@@ -655,7 +660,7 @@ MODULE motion_program_exec
                 "Skipping target due to measurement offsets being too large!"
                 \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1)+" ("+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")",
                 \RL3:="Max error z"+NumToStr(max_deviation_z,1)+"max error xy:"+NumToStr(max_deviation_xy,1),
-                \RL4:="profile inaccurate H:"+ValToStr(horizontal_bar_inaccurate)+"V:"+ValToStr(vertical_bar_inaccurate);
+                \RL4:="profile inaccurate H:"+ValToStr(horizontal_bar_inaccurate)+ " "+NumToStr(profile_horizontal_accuracy,1) + "V:"+ValToStr(vertical_bar_inaccurate)+ " "+NumToStr(profile_vertical_accuracy,1);
             skipped_targets{tying_target_idx} := tying_target_idx;
             Incr skipped_target_counter;
         ELSE
