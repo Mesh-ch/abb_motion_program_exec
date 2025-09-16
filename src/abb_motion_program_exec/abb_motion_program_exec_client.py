@@ -54,9 +54,13 @@ def _get_motion_program_file(path: str, motion_program: "MotionProgram", task="T
     if not len(b) > 0:
         raise Exception("Motion program must not be empty")
     ramdisk = path
-    filename = f"{ramdisk}/motion_program"
+    # Ensure ramdisk path ends with a single '/'
+    if ramdisk.endswith('/'):
+        filename = f"{ramdisk}motion_program"
+    else:
+        filename = f"{ramdisk}/motion_program"
     if task != "T_ROB1":
-        task_m = re.match(r"^.*[A-Za-z_](\d+)$",task)
+        task_m = re.match(r"^.*[A-Za-z_](\d+)$", task)
         if task_m:
             filename_ind = int(task_m.group(1))
             filename = f"{filename}{filename_ind}"
@@ -251,8 +255,9 @@ class MotionProgramExecClient:
                      of the robot controller. The WAN port ethernet must be used, not the maintenance port.
     :param username: The HTTP username for the robot. Defaults to 'Default User'
     :param password: The HTTP password for the robot. Defaults to 'robotics'    
+    :param rws_version: The RWS version to use. Defaults to 1, supports version 1 and 2.
     """
-    def __init__(self, base_url='http://127.0.0.1:80', username='Default User', password='robotics', abb_client = None):
+    def __init__(self, base_url='http://127.0.0.1:80', username='Default User', password='robotics', abb_client = None, rws_version=1):
         if abb_client is None:
             self.abb_client: RWS = RWS(base_url, username, password)
         else:
