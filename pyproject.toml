@@ -3,9 +3,10 @@ requires = ["setuptools", "wheel"]
 
 [project]
 name = "abb_motion_program_exec"
-version = "0.7.4"
+version = "0.7.5"
 authors = [
-    {name ="John Wason", email = "wason@wasontech.com"}
+    {name ="John Wason", email = "wason@wasontech.com"},
+    {name = "Mattis Koh", email = "koh@mesh.ch"}
 ]
 description = "Python package to execute motion commands on ABB robots and log results"
 license = {text = "Apache-2.0"}
