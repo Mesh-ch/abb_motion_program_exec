@@ -700,10 +700,10 @@ MODULE motion_program_exec
                     ! 5 == ST_TIE_DONE
 
                     ! Move to approach (exit) target and only clear once at the target
-                    MoveLGO approach_rt,sd,z50,motion_program_tool\WObj:=motion_program_wobj,signal_go,\Value:=7;
+                    MoveLGO approach_rt,sd,z100,motion_program_tool\WObj:=motion_program_wobj,signal_go,\Value:=7;
                 ELSE
                     ! Move to approach (exit) target
-                    MoveL approach_rt,sd,z50,motion_program_tool\WObj:=motion_program_wobj;
+                    MoveL approach_rt,sd,z100,motion_program_tool\WObj:=motion_program_wobj;
                 ENDIF
             ENDIF
         ELSE
@@ -712,10 +712,10 @@ MODULE motion_program_exec
             MoveL rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             IF no_tie=0 THEN
                 ! Move to approach (exit) target and only clear once at the target
-                MoveLGO approach_rt,sd,z50,motion_program_tool\WObj:=motion_program_wobj,signal_go,\Value:=7;
+                MoveLGO approach_rt,sd,z100,motion_program_tool\WObj:=motion_program_wobj,signal_go,\Value:=7;
             ELSE
                 ! Move to approach (exit) target
-                MoveL approach_rt,sd,z50,motion_program_tool\WObj:=motion_program_wobj;
+                MoveL approach_rt,sd,z100,motion_program_tool\WObj:=motion_program_wobj;
             ENDIF
         ENDIF
         ConfL\On;
