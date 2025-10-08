@@ -39,8 +39,8 @@ MODULE motion_program_exec
     LOCAL VAR rawbytes motion_program_bytes;
     LOCAL VAR num motion_program_bytes_offset;
 
-    TASK PERS tooldata motion_program_tool:=[TRUE,[[64.4664,0.233697,727.505],[0.707,0,0,-0.707]],[25,[0,0,300],[1,0,0,0],0,0,0]];
-    TASK PERS wobjdata motion_program_wobj:=[FALSE,TRUE,"ROB_1",[[0,0,0],[1,0,0,0]],[[0,0,0],[1,0,0,0]]];
+    TASK PERS tooldata motion_program_tool:=[TRUE,[[0,0,0],[1,0,0,0]],[0.001,[0,0,0.001],[1,0,0,0],0,0,0]];
+    TASK PERS wobjdata motion_program_wobj:=[FALSE,TRUE,"",[[0,0,0],[1,0,0,0]],[[0,0,0],[1,0,0,0]]];
     TASK PERS loaddata motion_program_gripload:=[0.001,[0,0,0.001],[1,0,0,0],0,0,0];
 
     LOCAL VAR rmqslot logger_rmq;
@@ -662,6 +662,9 @@ MODULE motion_program_exec
                     ENDIF
                 ENDIF
             ENDIF
+        ELSE
+            MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+            WaitTime 0.5;
         ENDIF
         
         StartMove;
@@ -711,6 +714,12 @@ MODULE motion_program_exec
              ! Move to tying target
             MoveL rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             IF no_tie=0 THEN
+                WaitGI signal_gi,3;
+                ! 3 == ST_XTIE_READY
+                SetGO signal_go,4;
+                ! 4 == Start command
+                WaitGI signal_gi,5;
+                ! 5 == ST_TIE_DONE
                 ! Move to approach (exit) target and only clear once at the target
                 MoveLGO approach_rt,sd,z100,motion_program_tool\WObj:=motion_program_wobj,signal_go,\Value:=7;
             ELSE
