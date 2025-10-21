@@ -375,7 +375,8 @@ class RunTieCommand(CommandBase):
             rf"MoveL {to_point_str}, {sync_id}{speed_str}, {zone_str}, motion_program_tool\\Wobj:=motion_program_wobj;"
         )
 
-    _append_method_doc = ""
+
+_append_method_doc = ""
 
 
 @dataclass
@@ -384,15 +385,18 @@ class RunSearchTargetCommand(CommandBase):
     to_point: robtarget
     approach_offset: float
     clockwise: bool
+    debug_mode: bool  # If true, will run in calibration debug mode.
 
     def write_params(self, f: io.IOBase):
         to_point_b = util.robtarget_to_bin(self.to_point)
         approach_offset_b = util.num_to_bin(self.approach_offset)
         clockwise_b = util.num_to_bin(1 if self.clockwise else 0)
+        debug_mode_b = util.num_to_bin(1 if self.debug_mode else 0)
 
         f.write(to_point_b)
         f.write(approach_offset_b)
         f.write(clockwise_b)
+        f.write(debug_mode_b)
 
     def to_rapid(self, **kwargs):
         return "SearchForCalibrationTarget;"
