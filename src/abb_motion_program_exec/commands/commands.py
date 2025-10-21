@@ -375,8 +375,7 @@ class RunTieCommand(CommandBase):
             rf"MoveL {to_point_str}, {sync_id}{speed_str}, {zone_str}, motion_program_tool\\Wobj:=motion_program_wobj;"
         )
 
-
-_append_method_doc = ""
+    _append_method_doc = ""
 
 
 @dataclass
