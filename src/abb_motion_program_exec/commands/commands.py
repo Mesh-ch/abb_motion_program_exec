@@ -376,3 +376,25 @@ class RunTieCommand(CommandBase):
         )
 
     _append_method_doc = ""
+
+
+@dataclass
+class RunSearchTargetCommand(CommandBase):
+    command_opcode = 16
+    to_point: robtarget
+    approach_offset: float
+    clockwise: bool
+
+    def write_params(self, f: io.IOBase):
+        to_point_b = util.robtarget_to_bin(self.to_point)
+        approach_offset_b = util.num_to_bin(self.approach_offset)
+        clockwise_b = util.num_to_bin(1 if self.clockwise else 0)
+
+        f.write(to_point_b)
+        f.write(approach_offset_b)
+        f.write(clockwise_b)
+
+    def to_rapid(self, **kwargs):
+        return "SearchForCalibrationTarget;"
+
+    _append_method_doc = ""

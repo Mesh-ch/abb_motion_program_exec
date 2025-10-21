@@ -27,15 +27,23 @@ from .commands import util
 from .commands import commands
 from .commands.command_base import command_append_method
 from .commands import egm_commands
-from .commands.egm_commands import EGMStreamConfig, EGMJointTargetConfig, EGMPoseTargetConfig, EGMPathCorrectionConfig, \
-    egm_minmax, egmframetype
+from .commands.egm_commands import (
+    EGMStreamConfig,
+    EGMJointTargetConfig,
+    EGMPoseTargetConfig,
+    EGMPathCorrectionConfig,
+    egm_minmax,
+    egmframetype,
+)
 
 MOTION_PROGRAM_FILE_VERSION = 10011
+
 
 class MotionProgramResultLog(NamedTuple):
     timestamp: str
     column_headers: List[str]
     data: np.array
+
 
 def _unpack_motion_program_result_log(b: bytes):
     f = io.BytesIO(b)
@@ -45,17 +53,20 @@ def _unpack_motion_program_result_log(b: bytes):
     timestamp_str = util.read_str(f)
     header_str = util.read_str(f)
     headers = header_str.split(",")
-    data_flat = np.frombuffer(b[f.tell():], dtype=np.float32)
-    data = data_flat.reshape((-1,len(headers)))
+    data_flat = np.frombuffer(b[f.tell() :], dtype=np.float32)
+    data = data_flat.reshape((-1, len(headers)))
     return MotionProgramResultLog(timestamp_str, headers, data)
 
-def _get_motion_program_file(path: str, motion_program: "MotionProgram", task="T_ROB1", preempt_number=None, seqno = None):
+
+def _get_motion_program_file(
+    path: str, motion_program: "MotionProgram", task="T_ROB1", preempt_number=None, seqno=None
+):
     b = motion_program.get_program_bytes(seqno)
     if not len(b) > 0:
         raise Exception("Motion program must not be empty")
     ramdisk = path
     # Ensure ramdisk path ends with a single '/'
-    if ramdisk.endswith('/'):
+    if ramdisk.endswith("/"):
         filename = f"{ramdisk}motion_program"
     else:
         filename = f"{ramdisk}/motion_program"
@@ -69,9 +80,11 @@ def _get_motion_program_file(path: str, motion_program: "MotionProgram", task="T
     filename = f"{filename}.bin"
     return filename, b
 
-tool0 = tooldata(True,pose([0,0,0],[1,0,0,0]),loaddata(0.001,[0,0,0.001],[1,0,0,0],0,0,0))
-wobj0 = wobjdata(False, True, "", pose([0,0,0],[1,0,0,0]), pose([0,0,0],[1,0,0,0]))
-load0 = loaddata(0.001,[0,0,0.001],[1,0,0,0],0,0,0)
+
+tool0 = tooldata(True, pose([0, 0, 0], [1, 0, 0, 0]), loaddata(0.001, [0, 0, 0.001], [1, 0, 0, 0], 0, 0, 0))
+wobj0 = wobjdata(False, True, "", pose([0, 0, 0], [1, 0, 0, 0]), pose([0, 0, 0], [1, 0, 0, 0]))
+load0 = loaddata(0.001, [0, 0, 0.001], [1, 0, 0, 0], 0, 0, 0)
+
 
 class MotionProgram:
     """
@@ -79,10 +92,10 @@ class MotionProgram:
     can be executed by the interpreter program running on the robot. This program must be installed before the
     motion program can be executed.
 
-    Motion commands are appended to the program by calling one of the motion program command functions. Currently 
+    Motion commands are appended to the program by calling one of the motion program command functions. Currently
     supported commands are ``MoveAbsJ``, ``MoveJ``, ``MoveL``, ``MoveC``, ``WaitTime``, ``CirPathMode``,
     ``SyncMoveOn``, ``SyncMoveOff``, ``EGMRunJoint``, ``EGMRunPose``, ``EGMMoveL``, and ``EGMMoveC``
-        
+
     :param first_cmd_num: The first command number for the motion program. Defaults to 1
     :param tooldata: The tooldata to use for the motion program. Defaults to tool0
     :param wobj: The wobjdata to use for the motion program. Defaults to wobj0
@@ -94,13 +107,12 @@ class MotionProgram:
 
     """
 
-
     MoveAbsJ = command_append_method(commands.MoveAbsJCommand)
     MoveJ = command_append_method(commands.MoveJCommand)
     MoveL = command_append_method(commands.MoveLCommand)
     MoveC = command_append_method(commands.MoveCCommand)
     MoveLRelTool = command_append_method(commands.MoveLRelTool)
-    
+
     WaitTime = command_append_method(commands.WaitTimeCommand)
     CirPathMode = command_append_method(commands.CirPathModeCommand)
     SyncMoveOn = command_append_method(commands.SyncMoveOnCommand)
@@ -110,20 +122,27 @@ class MotionProgram:
     EGMRunPose = command_append_method(egm_commands.EGMRunPoseCommand)
     EGMMoveL = command_append_method(egm_commands.EGMMoveLCommand)
     EGMMoveC = command_append_method(egm_commands.EGMMoveCCommand)
-    
+
     SetDO = command_append_method(commands.SetDOCommand)
     SetGO = command_append_method(commands.SetGOCommand)
-    
+
     WaitDI = command_append_method(commands.WaitDICommand)
     WaitGI = command_append_method(commands.WaitGICommand)
-    
+
     RunCBC = command_append_method(commands.RunCBCCommand)
     RunTie = command_append_method(commands.RunTieCommand)
+    RunSearchTarget = command_append_method(commands.RunSearchTargetCommand)
 
-    def __init__(self,first_cmd_num: int=1, tool: tooldata = None, wobj: wobjdata = None, timestamp: str = None, 
-        egm_config: Union[EGMStreamConfig,EGMJointTargetConfig,EGMPoseTargetConfig,EGMPathCorrectionConfig] = None, 
-        seqno: int = 0, gripload: loaddata = None):
-
+    def __init__(
+        self,
+        first_cmd_num: int = 1,
+        tool: tooldata = None,
+        wobj: wobjdata = None,
+        timestamp: str = None,
+        egm_config: Union[EGMStreamConfig, EGMJointTargetConfig, EGMPoseTargetConfig, EGMPathCorrectionConfig] = None,
+        seqno: int = 0,
+        gripload: loaddata = None,
+    ):
         self._commands = []
 
         if timestamp is None:
@@ -132,7 +151,7 @@ class MotionProgram:
             raise Exception("Invalid timestamp format. Must be YYYY-MM-DD-HH-MM-SS-MSMS")
 
         self._timestamp = timestamp
-        
+
         self.tool = tool
         self.wobj = wobj
         self.gripload = gripload
@@ -143,7 +162,7 @@ class MotionProgram:
         if self.gripload is None:
             self.gripload = load0
 
-        self._first_cmd_num=first_cmd_num
+        self._first_cmd_num = first_cmd_num
 
         self._egm_config = egm_config
         self._seqno = seqno
@@ -151,7 +170,7 @@ class MotionProgram:
     def _append_command(self, cmd):
         self._commands.append(cmd)
 
-    def write_program(self, f: io.IOBase, seqno = None):
+    def write_program(self, f: io.IOBase, seqno=None):
         """
         Write binary motion program to binary file. The robot controller program will interpret the binary
         file to execute the motion program.
@@ -161,7 +180,7 @@ class MotionProgram:
         """
         # Version number
         f.write(util.num_to_bin(MOTION_PROGRAM_FILE_VERSION))
-        
+
         f.write(util.tooldata_to_bin(self.tool))
         f.write(util.wobjdata_to_bin(self.wobj))
         f.write(util.loaddata_to_bin(self.gripload))
@@ -171,7 +190,7 @@ class MotionProgram:
         else:
             f.write(util.num_to_bin(self._seqno))
 
-        egm_commands.write_egm_config(f,self._egm_config)
+        egm_commands.write_egm_config(f, self._egm_config)
 
         for i in range(len(self._commands)):
             cmd = self._commands[i]
@@ -179,9 +198,9 @@ class MotionProgram:
             f.write(util.num_to_bin(cmd_num))
             f.write(util.num_to_bin(cmd.command_opcode))
 
-            cmd.write_params(f)    
+            cmd.write_params(f)
 
-    def get_program_bytes(self, seqno = None) -> bytes:
+    def get_program_bytes(self, seqno=None) -> bytes:
         """
         Return binary motion program
 
@@ -205,16 +224,15 @@ class MotionProgram:
         wobjdata_str = self.wobj.to_rapid()
         timestamp_str = self._timestamp
 
-
         print(f"MODULE {module_name}", file=f)
         print(f"    ! abb_motion_program_exec format version {ver}", file=f)
         print(f"    ! abb_motion_program_exec timestamp {timestamp_str}", file=f)
         print(f"    TASK PERS tooldata motion_program_tool := {tooldata_str};", file=f)
         print(f"    TASK PERS wobjdata motion_program_wobj := {wobjdata_str};", file=f)
         if sync_move:
-             print("    PERS tasks task_list{2} := [ [\"T_ROB1\"], [\"T_ROB2\"] ];", file=f)
-             print("    VAR syncident motion_program_sync1;", file=f)
-             print("    VAR syncident motion_program_sync2;", file=f)
+            print('    PERS tasks task_list{2} := [ ["T_ROB1"], ["T_ROB2"] ];', file=f)
+            print("    VAR syncident motion_program_sync1;", file=f)
+            print("    VAR syncident motion_program_sync2;", file=f)
 
         print(f"    PROC main()", file=f)
 
@@ -222,13 +240,13 @@ class MotionProgram:
             cmd = self._commands[i]
             cmd_num = i + self._first_cmd_num
 
-            print(f"        ! cmd_num = {cmd_num}",file=f)
+            print(f"        ! cmd_num = {cmd_num}", file=f)
 
             print(f"        {cmd.to_rapid(sync_move=sync_move, cmd_num=cmd_num)}", file=f)
-        
+
         print("    ENDPROC", file=f)
         print("ENDMODULE", file=f)
-        
+
     def get_program_rapid(self, module_name="motion_program_exec_gen", sync_move=False) -> str:
         """
         Returns equivalent RAPID program of the motion program. Useful for debugging motion programs.
@@ -244,6 +262,7 @@ class MotionProgram:
         """Get the timestamp of the motion program"""
         return self._timestamp
 
+
 class MotionProgramExecClient:
     """
     Client to execute motion programs an ABB IRC5 controller using Robot Web Services (RWS)
@@ -254,17 +273,26 @@ class MotionProgramExecClient:
                      the default value. For a real robot, 127.0.0.1 should be replaced with the IP address
                      of the robot controller. The WAN port ethernet must be used, not the maintenance port.
     :param username: The HTTP username for the robot. Defaults to 'Default User'
-    :param password: The HTTP password for the robot. Defaults to 'robotics'    
+    :param password: The HTTP password for the robot. Defaults to 'robotics'
     :param rws_version: The RWS version to use. Defaults to 1, supports version 1 and 2.
     """
-    def __init__(self, base_url='http://127.0.0.1:80', username='Default User', password='robotics', abb_client = None, rws_version=1):
+
+    def __init__(
+        self,
+        base_url="http://127.0.0.1:80",
+        username="Default User",
+        password="robotics",
+        abb_client=None,
+        rws_version=1,
+    ):
         if abb_client is None:
             self.abb_client: RWS = RWS(base_url, username, password)
         else:
             self.abb_client: RWS = abb_client
 
-    def execute_motion_program(self, motion_program: MotionProgram, task: str="T_ROB1", 
-        wait : bool = True, seqno: int = None) -> Union[MotionProgramResultLog,int]:
+    def execute_motion_program(
+        self, motion_program: MotionProgram, task: str = "T_ROB1", wait: bool = True, seqno: int = None
+    ) -> Union[MotionProgramResultLog, int]:
         """
         Execute a motion program. If ``wait`` is True, executes the following steps:
 
@@ -285,8 +313,9 @@ class MotionProgramExecClient:
         :param wait: If True, wait for the program to complete. Else, return once the program has been started.
         :param seqno: Optional motion program seqno override
         """
-        filename, b = _get_motion_program_file(self.abb_client.get_ramdisk_path(), motion_program, task, seqno = seqno)
-        def _upload():            
+        filename, b = _get_motion_program_file(self.abb_client.get_ramdisk_path(), motion_program, task, seqno=seqno)
+
+        def _upload():
             self.abb_client.upload_file(filename, b)
 
         prev_seqnum = self._download_and_start_motion_program([task], _upload)
@@ -295,8 +324,14 @@ class MotionProgramExecClient:
         self.wait_motion_program_complete()
         return self.read_motion_program_result_log(prev_seqnum)
 
-    def preempt_motion_program(self, motion_program: MotionProgram, task: str="T_ROB1", preempt_number: int = 1, 
-        preempt_cmdnum : int = -1, seqno: int = None):
+    def preempt_motion_program(
+        self,
+        motion_program: MotionProgram,
+        task: str = "T_ROB1",
+        preempt_number: int = 1,
+        preempt_cmdnum: int = -1,
+        seqno: int = None,
+    ):
         """
         Preempt a running motion program. Preempting works by downloading a replacement motion program file
         to the controller, and then switching to the new file at a specified command number. Multiple preemptions
@@ -305,7 +340,7 @@ class MotionProgramExecClient:
         Preempting can only occur after the `currently queued` command. The ABB controller will read ahead up to motion
         three motion commands. This means that there may be some delay before the preemption can occur.
 
-        :param motion_program: The new motion program. The ``first-cmd_num`` parameter of the motion program must be 
+        :param motion_program: The new motion program. The ``first-cmd_num`` parameter of the motion program must be
                                specified to be one greater than the ``preempt_cmdnum``.
         :param task: The task to preempt
         :param preempt_number: The number of the preemption. The first preemption should set this to 1
@@ -314,7 +349,9 @@ class MotionProgramExecClient:
         :param seqno: Optional override of the motion program seqno
         """
 
-        filename, b = _get_motion_program_file(self.abb_client.get_ramdisk_path(), motion_program, task, preempt_number, seqno = seqno)
+        filename, b = _get_motion_program_file(
+            self.abb_client.get_ramdisk_path(), motion_program, task, preempt_number, seqno=seqno
+        )
         self.abb_client.upload_file(filename, b)
         self.abb_client.set_analog_io("motion_program_preempt_cmd_num", preempt_cmdnum)
         self.abb_client.set_analog_io("motion_program_preempt", preempt_number)
@@ -332,13 +369,13 @@ class MotionProgramExecClient:
 
     def get_current_preempt_number(self) -> int:
         """Get the current preempt_number"""
-        return self.abb_client.get_analog_io("motion_program_preempt_current") 
-        
+        return self.abb_client.get_analog_io("motion_program_preempt_current")
 
-    def execute_multimove_motion_program(self, motion_programs: List[MotionProgram], tasks: List[str]=None, 
-        wait : bool = True, seqno: int = None):
+    def execute_multimove_motion_program(
+        self, motion_programs: List[MotionProgram], tasks: List[str] = None, wait: bool = True, seqno: int = None
+    ):
         """
-        Execute a motion program on a MultiMove system with multiple robots. Same as 
+        Execute a motion program on a MultiMove system with multiple robots. Same as
         :meth:`MotionProgramExecClient.execute_motion_program()` but takes lists of motion programs and tasks.
 
         Motion programs should use ``SyncMoveOn()`` command when using MultiMove.
@@ -346,11 +383,11 @@ class MotionProgramExecClient:
         :param motion_programs: A list of motion programs. Number of motion programs must correspond to number of robots.
         :param tasks: A list of RAPID Tasks. Defaults to T_ROBn, where n is the default task number for the robots.
         :param wait: If True, wait for the program to complete. Else, return once the program has been started.
-        :param seqno: Optional motion program seqno override        
+        :param seqno: Optional motion program seqno override
         """
 
         if tasks is None:
-            tasks = [f"T_ROB{i+1}" for i in range(len(motion_programs))]        
+            tasks = [f"T_ROB{i + 1}" for i in range(len(motion_programs))]
 
         if not len(motion_programs) == len(tasks):
             raise Exception("Motion program list and task list must have some length")
@@ -363,7 +400,7 @@ class MotionProgramExecClient:
         ramdisk = self.abb_client.get_ramdisk_path()
 
         for mp, task in zip(motion_programs, tasks):
-            filename1, b1 = _get_motion_program_file(ramdisk, mp, task, seqno = seqno)
+            filename1, b1 = _get_motion_program_file(ramdisk, mp, task, seqno=seqno)
             filenames.append(filename1)
             b.append(b1)
 
@@ -371,6 +408,7 @@ class MotionProgramExecClient:
             raise Exception("Motion program must not be empty")
         if not len(filenames) == len(b):
             raise Exception("Filename list and binary list must have same length")
+
         def _upload():
             for i in range(len(filenames)):
                 self.abb_client.upload_file(filenames[i], b[i])
@@ -381,13 +419,19 @@ class MotionProgramExecClient:
         self.wait_motion_program_complete()
         return self.read_motion_program_result_log(prev_seqnum)
 
-    def preempt_multimove_motion_program(self, motion_programs: List[MotionProgram], tasks: List[str]=None, 
-        preempt_number: int = 1, preempt_cmdnum : int = -1, seqno: int = None):
+    def preempt_multimove_motion_program(
+        self,
+        motion_programs: List[MotionProgram],
+        tasks: List[str] = None,
+        preempt_number: int = 1,
+        preempt_cmdnum: int = -1,
+        seqno: int = None,
+    ):
         """
-        Preempt a motion program on a MultiMove system with multiple robots. Same as 
+        Preempt a motion program on a MultiMove system with multiple robots. Same as
         :meth:`MotionProgramExecClient.preempt_motion_program()` but takes lists of motion programs and tasks.
-        
-        :param motion_program: List of new motion programs. The ``first-cmd_num`` parameter of the motion program must be 
+
+        :param motion_program: List of new motion programs. The ``first-cmd_num`` parameter of the motion program must be
                                specified to be one greater than the ``preempt_cmdnum``.
         :param task: The tasks to preempt
         :param preempt_number: The number of the preemption. The first preemption should set this to 1
@@ -396,7 +440,7 @@ class MotionProgramExecClient:
         :param seqno: Optional override of the motion program seqno
         """
         if tasks is None:
-            tasks = [f"T_ROB{i+1}" for i in range(len(motion_programs))]        
+            tasks = [f"T_ROB{i + 1}" for i in range(len(motion_programs))]
 
         if not len(motion_programs) == len(tasks):
             raise Exception("Motion program list and task list must have some length")
@@ -409,21 +453,20 @@ class MotionProgramExecClient:
         ramdisk = self.abb_client.get_ramdisk_path()
 
         for mp, task in zip(motion_programs, tasks):
-            filename1, b1 = _get_motion_program_file(ramdisk, mp, task, preempt_number, seqno = seqno)
+            filename1, b1 = _get_motion_program_file(ramdisk, mp, task, preempt_number, seqno=seqno)
             filenames.append(filename1)
             b.append(b1)
 
-        for filename, b in zip(filenames, b):        
+        for filename, b in zip(filenames, b):
             self.abb_client.upload_file(filename, b)
         self.abb_client.set_analog_io("motion_program_preempt_cmd_num", preempt_cmdnum)
         self.abb_client.set_analog_io("motion_program_preempt", preempt_number)
-    
-    def _download_and_start_motion_program(self, tasks, upload_fn: Callable[[],None]):
-        
+
+    def _download_and_start_motion_program(self, tasks, upload_fn: Callable[[], None]):
         exec_state = self.abb_client.get_execution_state()
         if not exec_state.ctrlexecstate == "stopped":
             raise Exception("Controller must be stopped to execute motion program")
-        #assert exec_state.cycle == "once"
+        # assert exec_state.cycle == "once"
         ctrl_state = self.abb_client.get_controller_state()
         if not ctrl_state == "motoron":
             raise Exception("Controller must be motoron to execute motion program")
@@ -434,7 +477,7 @@ class MotionProgramExecClient:
         self.abb_client.resetpp()
         upload_fn()
 
-        self.abb_client.start(cycle='once',tasks=tasks)
+        self.abb_client.start(cycle="once", tasks=tasks)
 
         return prev_seqnum
 
@@ -445,7 +488,7 @@ class MotionProgramExecClient:
 
     def wait_motion_program_complete(self):
         """Wait for motion program to complete"""
-        
+
         while True:
             exec_state = self.abb_client.get_execution_state()
             if exec_state.ctrlexecstate != "running":
@@ -472,7 +515,7 @@ class MotionProgramExecClient:
                 log_after.append(l)
             else:
                 break
-        
+
         failed = False
         for l in log_after:
             if l.msgtype >= 2:
@@ -495,12 +538,12 @@ class MotionProgramExecClient:
                         if found_log_close:
                             raise Exception("Found more than one log closed message")
                         found_log_close = True
-                
+
                 if l.args[0].lower() == "motion program log file opened":
                     if found_log_open:
                         raise Exception("Found more than one log opened message")
                     found_log_open = True
-                    log_filename_m = re.search(r"(log\-[\d\-]+\.bin)",l.args[1])
+                    log_filename_m = re.search(r"(log\-[\d\-]+\.bin)", l.args[1])
                     if not log_filename_m:
                         raise Exception("Invalid log opened message")
                     log_filename = log_filename_m.group(1)

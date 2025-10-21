@@ -33,6 +33,7 @@ MODULE motion_program_exec
     !Run cyclic brake check
     CONST num MOTION_PROGRAM_CMD_TIE:=15;
     !Run tying cycle
+    CONST num MOTION_PROGRAM_CMD_SEARCHTARGET:=16;
 
 
     LOCAL VAR iodev motion_program_io_device;
@@ -121,23 +122,25 @@ MODULE motion_program_exec
         ! Initialize the motion program state and log
         ClkReset production_clock;
         ClkStart production_clock;
-        production_time := ClkRead(production_clock);
-        SetDO motion_program_completed, 0;
-        skipped_target_counter:=0; ! initialize skip counter at program start
-        current_target_idx:=0;  ! initialize target idx counter at program start
-        FOR index FROM 1 TO dim(skipped_targets, 1 ) DO
-            skipped_targets{index} := 0;
-            ENDFOR
+        production_time:=ClkRead(production_clock);
+        SetDO motion_program_completed,0;
+        skipped_target_counter:=0;
+        ! initialize skip counter at program start
+        current_target_idx:=0;
+        ! initialize target idx counter at program start
+        FOR index FROM 1 TO dim(skipped_targets,1) DO
+            skipped_targets{index}:=0;
+        ENDFOR
     ENDPROC
 
     PROC motion_program_fini()
         ClkStop production_clock;
         production_time:=ClkRead(production_clock);
-        ErrWrite\I,"Motion Program Complete","Motion Program Completed in "+NumToStr(production_time,0)+" s", \RL2:="Total skipped targets: "+NumToStr(skipped_target_counter,0);
+        ErrWrite\I,"Motion Program Complete","Motion Program Completed in "+NumToStr(production_time,0)+" s",\RL2:="Total skipped targets: "+NumToStr(skipped_target_counter,0);
         IDelete motion_trigg_intno;
         ! Set finishing parameters
         SetDO motion_program_completed,1;
-        current_target_idx := 0;
+        current_target_idx:=0;
     ENDPROC
 
     PROC run_motion_program_file(string filename)
@@ -342,6 +345,9 @@ MODULE motion_program_exec
         CASE MOTION_PROGRAM_CMD_TIE:
             motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN run_tying_cycle(cmd_num);
+        CASE MOTION_PROGRAM_CMD_SEARCHTARGET:
+            motion_cmd_num_history{local_cmd_ind}:=-1;
+            RETURN run_search_target(cmd_num);
         DEFAULT:
             RAISE ERR_INVALID_OPCODE;
         ENDTEST
@@ -551,7 +557,8 @@ MODULE motion_program_exec
         CONST num max_deviation_y:=35;
         CONST num max_deviation_z:=40;
         CONST num min_accuracy:=93;
-        CONST num search_distance:=20;!mm
+        CONST num search_distance:=20;
+        !mm
         VAR num profile_vertical_accuracy;
         VAR num profile_horizontal_accuracy;
         IF NOT (
@@ -591,7 +598,7 @@ MODULE motion_program_exec
             WaitTime 1.0;
             IF matching_accuracy<min_accuracy THEN
                 ! Try moving in Y 10mm
-                ErrWrite\I,"Attempting shift search for vertical bar","Shifting -"+ NumToStr(search_distance,0)+" mm in Y";
+                ErrWrite\I,"Attempting shift search for vertical bar","Shifting -"+NumToStr(search_distance,0)+" mm in Y";
                 search_vertical_rt:=RelTool(approach_rt,0,-search_distance,0);
                 StartMove;
                 MoveL search_vertical_rt,search_speed,fine,motion_program_tool\WObj:=motion_program_wobj;
@@ -607,19 +614,19 @@ MODULE motion_program_exec
                 ElSE
                     vertical_bar_inaccurate:=TRUE;
                 ENDIF
-                profile_vertical_accuracy := matching_accuracy;
+                profile_vertical_accuracy:=matching_accuracy;
                 StartMove;
                 IF vertical_bar_inaccurate THEN
                     MoveL approach_rt,search_speed,fine,motion_program_tool\WObj:=motion_program_wobj;
                 ELSE
                     MoveL rotated_approach_rt,search_speed,fine,motion_program_tool\WObj:=motion_program_wobj;
                 ENDIF
-                
+
             ELSE
                 vertical_bar_inaccurate:=FALSE;
                 tying_offsetZ:=z_offset-tying_gap_distance;
                 tying_offsetX:=x_offset;
-                profile_vertical_accuracy := matching_accuracy;
+                profile_vertical_accuracy:=matching_accuracy;
             ENDIF
         ENDIF
 
@@ -627,7 +634,7 @@ MODULE motion_program_exec
         if disable_laser_correction=0 THEN
             if vertical_bar_inaccurate THEN
                 ! skip the horizontal bar measurement
-                ErrWrite\I,"Vertical bar measurement failed", "skipping target early";
+                ErrWrite\I,"Vertical bar measurement failed","skipping target early";
             ELSE
                 MoveL rotated_approach_rt,search_speed,fine,motion_program_tool\WObj:=motion_program_wobj;
                 StopMove;
@@ -638,7 +645,7 @@ MODULE motion_program_exec
                 ! Check if profile is accurate
                 IF matching_accuracy<min_accuracy THEN
                     ! Try moving in Y 10mm
-                    ErrWrite\I,"Attempting shift search for horizontal bar","Shifting -"+ NumToStr(search_distance,0)+"mm in Y";
+                    ErrWrite\I,"Attempting shift search for horizontal bar","Shifting -"+NumToStr(search_distance,0)+"mm in Y";
                     search_horizontal_rt:=RelTool(rotated_approach_rt,0,-search_distance,0);
                     StartMove;
                     MoveL search_horizontal_rt,search_speed,fine,motion_program_tool\WObj:=motion_program_wobj;
@@ -657,12 +664,12 @@ MODULE motion_program_exec
                     ElSE
                         horizontal_bar_inaccurate:=TRUE;
                     ENDIF
-                    profile_horizontal_accuracy := matching_accuracy;
+                    profile_horizontal_accuracy:=matching_accuracy;
                     StartMove;
                     MoveL approach_rt,search_speed,fine,motion_program_tool\WObj:=motion_program_wobj;
                 ELSE
                     horizontal_bar_inaccurate:=FALSE;
-                    profile_horizontal_accuracy := matching_accuracy;
+                    profile_horizontal_accuracy:=matching_accuracy;
                     IF rotate_clockwise=1 THEN
                         tying_offsetY:=y_offset;
                     ELSE
@@ -674,7 +681,7 @@ MODULE motion_program_exec
             MoveL approach_rt,search_speed,fine,motion_program_tool\WObj:=motion_program_wobj;
             WaitTime 0.5;
         ENDIF
-        
+
         StartMove;
         MoveLDO approach_rt,search_speed,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,0;
         IF disable_laser_correction=0 THEN
@@ -688,9 +695,9 @@ MODULE motion_program_exec
                 ErrWrite\I,"Skipping target:"+NumToStr(current_target_idx,0),
                     "Skipping target due to measurement offsets being too large!"
                     \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1)+" ("+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")",
-                    \RL3:="Max error z"+NumToStr(max_deviation_z,1)+"max error x:"+NumToStr(max_deviation_x,1) + "max error y:"+NumToStr(max_deviation_y,1),
-                    \RL4:="profile inaccurate H:"+ValToStr(horizontal_bar_inaccurate)+ " "+NumToStr(profile_horizontal_accuracy,1) + "V:"+ValToStr(vertical_bar_inaccurate)+ " "+NumToStr(profile_vertical_accuracy,1);
-                skipped_targets{tying_target_idx} := tying_target_idx;
+                    \RL3:="Max error z"+NumToStr(max_deviation_z,1)+"max error x:"+NumToStr(max_deviation_x,1)+"max error y:"+NumToStr(max_deviation_y,1),
+                    \RL4:="profile inaccurate H:"+ValToStr(horizontal_bar_inaccurate)+" "+NumToStr(profile_horizontal_accuracy,1)+"V:"+ValToStr(vertical_bar_inaccurate)+" "+NumToStr(profile_vertical_accuracy,1);
+                skipped_targets{tying_target_idx}:=tying_target_idx;
                 Incr skipped_target_counter;
             ELSE
                 ErrWrite\I,"adjusting target:"+NumToStr(current_target_idx,0),
@@ -700,10 +707,10 @@ MODULE motion_program_exec
                 corrected_rt:=RelTool(approach_rt,-tying_offsetX,-tying_offsetY,tying_offsetZ);
                 if no_tie=0 THEN
                     ! Move to tying target
-                    IF debug_tying=1 THEN 
+                    IF debug_tying=1 THEN
                         Stop;
                     ENDIF
-                    
+
                     MoveL corrected_rt,v200,fine,motion_program_tool\WObj:=motion_program_wobj;
                     ! Check tying tool state and send tying command
                     WaitGI signal_gi,3;
@@ -722,8 +729,8 @@ MODULE motion_program_exec
                 ENDIF
             ENDIF
         ELSE
-            ErrWrite \I, "Laser correction disabled", "Moving to tying target without correction offsets";
-             ! Move to tying target
+            ErrWrite\I,"Laser correction disabled","Moving to tying target without correction offsets";
+            ! Move to tying target
             MoveL rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
             IF no_tie=0 THEN
                 WaitGI signal_gi,3;
@@ -744,6 +751,169 @@ MODULE motion_program_exec
         IF task_ind=1 THEN
             SetAO motion_program_current_cmd_num,cmd_num;
         ENDIF
+        RETURN TRUE;
+
+    ENDFUNC
+
+    FUNC bool run_search_target(num cmd_num)
+        VAR robtarget rt;
+        VAR robtarget corrected_rt;
+        VAR robtarget approach_rt;
+        VAR robtarget rotated_approach_rt;
+        VAR robtarget search_horizontal_rt;
+        VAR robtarget search_vertical_rt;
+        VAR speeddata sd:=v500;
+        CONST speeddata search_speed:=v300;
+        VAR zonedata zd:=fine;
+        VAR signalgi signal_gi;
+        VAR signalgo signal_go;
+        VAR num approach_offsetZ:=150;
+        VAR num rotate_clockwise;
+        VAR num tying_offsetX:=99999;
+        VAR num tying_offsetY:=99999;
+        VAR num tying_offsetZ:=99999;
+        VAR string state_signal_str:="xtie_state";
+        VAR string command_signal_str:="xtie_command";
+        VAR bool vertical_bar_inaccurate:=FALSE;
+        VAR bool horizontal_bar_inaccurate:=FALSE;
+        VAR num error_x;
+        VAR num error_y;
+        VAR num error_z;
+        CONST num sensor_rotation_angle:=90;
+        CONST num tying_gap_distance:=0;
+        CONST num min_accuracy:=93;
+        CONST num search_distance:=20;
+        !mm
+        var num debug_mode;
+        IF NOT (
+            try_motion_program_read_rt(rt)
+            AND try_motion_program_read_num(approach_offsetZ)
+            AND try_motion_program_read_num(rotate_clockwise)
+            AND try_motion_program_read_num(debug_mode)
+            ) THEN
+            RETURN FALSE;
+        ENDIF
+        ! Map IO signals using alias
+        AliasIO state_signal_str,signal_gi;
+        AliasIO command_signal_str,signal_go;
+        ! Define approach target (measuring position)
+        approach_rt:=RelTool(rt,0,0,approach_offsetZ);
+        IF rotate_clockwise=1 THEN
+            rotated_approach_rt:=RelTool(approach_rt,0,0,0,\Rz:=sensor_rotation_angle);
+        ELSE
+            rotated_approach_rt:=RelTool(approach_rt,0,0,0,\Rz:=-sensor_rotation_angle);
+        ENDIF
+        ConfL\Off;
+        ! Move to approach target & turn on laser
+        MoveLDO approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,1;
+        if debug_mode=1 THEN
+            Stop;
+        else
+            StopMove;
+            WaitTime 2;
+            StartMove;
+        ENDIF
+        ! Measure vertical rebar - check if profile is accurate
+        IF matching_accuracy<min_accuracy THEN
+            ! Try moving in Y 10mm to improve accuracy
+            ErrWrite\I,"Attempting shift search for vertical bar","Shifting -"+NumToStr(search_distance,0)+" mm in Y";
+            search_vertical_rt:=RelTool(approach_rt,0,-search_distance,0);
+            MoveL search_vertical_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+            if debug_mode=1 THEN
+                Stop;
+            else
+                StopMove;
+                WaitTime 2;
+                StartMove;
+            ENDIF
+            IF matching_accuracy>min_accuracy THEN
+                ! Log tying_offset Z and X from second attempt measurement
+                vertical_bar_inaccurate:=False;
+                tying_offsetZ:=z_offset-tying_gap_distance;
+                tying_offsetX:=x_offset;
+            ElSE
+                vertical_bar_inaccurate:=TRUE;
+            ENDIF
+            MoveL approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+        ELSE
+            ! Log tying_offset Z and X.
+            vertical_bar_inaccurate:=FALSE;
+            tying_offsetZ:=z_offset-tying_gap_distance;
+            tying_offsetX:=x_offset;
+        ENDIF
+        If vertical_bar_inaccurate THEN
+            ! skip the horizontal bar measurement
+            ErrWrite\I,"Vertical bar measurement failed","skipping target early";
+        ENDIF
+
+        ! Measure horizontal rebar (rotated position) -  check if profile is accurate
+        MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+        if debug_mode=1 THEN
+            Stop;
+        else
+            StopMove;
+            WaitTime 2;
+            StartMove;
+        ENDIF
+        IF matching_accuracy<min_accuracy THEN
+            ! Try moving in Y 10mm
+            ErrWrite\I,"Attempting shift search for horizontal bar","Shifting -"+NumToStr(search_distance,0)+"mm in Y";
+            search_horizontal_rt:=RelTool(rotated_approach_rt,0,-search_distance,0);
+            MoveL search_horizontal_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+            if debug_mode=1 THEN
+                Stop;
+            else
+                StopMove;
+                WaitTime 2;
+                StartMove;
+            ENDIF
+            IF matching_accuracy>min_accuracy THEN
+                horizontal_bar_inaccurate:=False;
+                IF rotate_clockwise=1 THEN
+                    ! Log tying_offset Y from second attempt measurement
+                    tying_offsetY:=y_offset;
+                ELSE
+                    tying_offsetY:=-1*y_offset;
+                ENDIF
+            ElSE
+                horizontal_bar_inaccurate:=TRUE;
+            ENDIF
+            MoveL rotated_approach_rt,sd,fine,motion_program_tool\WObj:=motion_program_wobj;
+        ELSE
+            ! Log tying_offset Y from first attempt measurement
+            horizontal_bar_inaccurate:=FALSE;
+            IF rotate_clockwise=1 THEN
+                tying_offsetY:=y_offset;
+            ELSE
+                tying_offsetY:=-1*y_offset;
+            ENDIF
+        ENDIF
+        ! Return back to approach position
+        MoveLDO approach_rt,search_speed,fine,motion_program_tool\WObj:=motion_program_wobj,oxm_laser_on,0;
+        ! Calculate corrected position
+        corrected_rt:=RelTool(approach_rt,-tying_offsetX,-tying_offsetY,tying_offsetZ);
+        ErrWrite\I,"Calibration target found",
+            "Original target: "+NumToStr(rt.trans.x,1)+","+NumToStr(rt.trans.y,1)+","+NumToStr(rt.trans.z,1),
+           \RL2:="Corrected target:"+NumToStr(corrected_rt.trans.x,1)+","+NumToStr(corrected_rt.trans.y,1)+","+NumToStr(corrected_rt.trans.z,1),
+            \RL3:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1)+" ("+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")";
+        if debug_mode=1 THEN
+            Stop;
+        else
+            StopMove;
+            WaitTime 2;
+            StartMove;
+        ENDIF
+        ! Move to corrected target
+        MoveL corrected_rt,v100,fine,motion_program_tool\WObj:=motion_program_wobj;
+        if debug_mode=1 THEN
+            Stop;
+        else
+            StopMove;
+            WaitTime 2;
+            StartMove;
+        ENDIF
+        MoveL approach_rt,search_speed,fine,motion_program_tool\WObj:=motion_program_wobj;
+        ConfL\On;
         RETURN TRUE;
 
     ENDFUNC
