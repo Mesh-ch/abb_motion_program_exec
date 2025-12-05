@@ -401,3 +401,40 @@ class RunSearchTargetCommand(CommandBase):
         return "SearchForCalibrationTarget;"
 
     _append_method_doc = ""
+
+
+@dataclass
+class SetWorkObjectCommand(CommandBase):
+    command_opcode = 17
+    workobject: wobjdata
+
+    def write_params(self, f: io.IOBase):
+        to_point_b = util.wobjdata_to_bin(self.workobject)
+
+        f.write(to_point_b)
+
+    def to_rapid(self, **kwargs):
+        return "SetWorkObject;"
+
+    _append_method_doc = ""
+
+
+@dataclass
+class PulseDOCommand(CommandBase):
+    command_opcode = 18
+
+    signal_name: str
+    duration: float
+
+    def write_params(self, f: io.IOBase):
+        # pass
+        signal_name_b = util.str_to_bin(self.signal_name)
+        duration_b = util.num_to_bin(self.duration)
+
+        f.write(signal_name_b)
+        f.write(duration_b)
+
+    def to_rapid(self, **kwargs):
+        return f"PulseDO '{self.signal_name}' {self.duration};"
+
+    _append_method_doc = ""

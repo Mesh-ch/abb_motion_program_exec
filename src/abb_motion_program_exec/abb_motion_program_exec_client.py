@@ -125,6 +125,7 @@ class MotionProgram:
 
     SetDO = command_append_method(commands.SetDOCommand)
     SetGO = command_append_method(commands.SetGOCommand)
+    PulseDO = command_append_method(commands.PulseDOCommand)
 
     WaitDI = command_append_method(commands.WaitDICommand)
     WaitGI = command_append_method(commands.WaitGICommand)
@@ -132,6 +133,8 @@ class MotionProgram:
     RunCBC = command_append_method(commands.RunCBCCommand)
     RunTie = command_append_method(commands.RunTieCommand)
     RunSearchTarget = command_append_method(commands.RunSearchTargetCommand)
+
+    SetWorkObject = command_append_method(commands.SetWorkObjectCommand)
 
     def __init__(
         self,
