@@ -135,6 +135,7 @@ class MotionProgram:
     RunSearchTarget = command_append_method(commands.RunSearchTargetCommand)
 
     SetWorkObject = command_append_method(commands.SetWorkObjectCommand)
+    SetAcceleration = command_append_method(commands.SetAccelerationCommand)
 
     def __init__(
         self,

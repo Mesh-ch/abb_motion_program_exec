@@ -34,6 +34,12 @@ MODULE motion_program_exec
     CONST num MOTION_PROGRAM_CMD_TIE:=15;
     !Run tying cycle
     CONST num MOTION_PROGRAM_CMD_SEARCHTARGET:=16;
+    !Set workobject
+    CONST num MOTION_PROGRAM_CMD_SETWOBJ:=17;
+    !Pulse DO
+    CONST num MOTION_PROGRAM_CMD_PULSEDO:=18;
+    !Set Acceleration
+    CONST num MOTION_PROGRAM_CMD_SETACCEL:=19;
 
 
     LOCAL VAR iodev motion_program_io_device;
@@ -348,6 +354,15 @@ MODULE motion_program_exec
         CASE MOTION_PROGRAM_CMD_SEARCHTARGET:
             motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN run_search_target(cmd_num);
+        CASE MOTION_PROGRAM_CMD_SETWOBJ:
+            motion_cmd_num_history{local_cmd_ind}:=-1;
+            RETURN set_wobj(cmd_num);
+        CASE MOTION_PROGRAM_CMD_PULSEDO:
+            motion_cmd_num_history{local_cmd_ind}:=-1;
+            RETURN pulse_do(cmd_num);
+        CASE MOTION_PROGRAM_CMD_SETACCEL:
+            motion_cmd_num_history{local_cmd_ind}:=-1;
+            RETURN set_accel(cmd_num);
         DEFAULT:
             RAISE ERR_INVALID_OPCODE;
         ENDTEST
@@ -917,6 +932,44 @@ MODULE motion_program_exec
         RETURN TRUE;
 
     ENDFUNC
+
+    FUNC bool set_wobj(num cmd_num)
+        VAR wobjdata work_object;
+        IF NOT try_motion_program_read_wd(work_object) THEN
+            RETURN FALSE;
+        ENDIF
+        motion_program_wobj:=work_object;
+        RETURN TRUE;
+    ENDFUNC
+    
+    FUNC bool set_accel(num cmd_num)
+        VAR num acceleration ;
+        var num acceleration_rate;
+        IF NOT (
+        try_motion_program_read_num(acceleration)
+        AND try_motion_program_read_num(acceleration_rate)
+        ) THEN
+            RETURN FALSE;
+        ENDIF
+        AccSet acceleration, acceleration_rate;
+        RETURN TRUE;
+    ENDFUNC
+    
+    FUNC bool pulse_do(num cmd_num)
+        VAR string signal_name;
+        VAR signaldo signal_do;
+        VAR num duration;
+        IF NOT (
+        try_motion_program_read_string(signal_name)
+        AND try_motion_program_read_num(duration)
+        ) THEN
+            RETURN FALSE;
+        ENDIF
+        AliasIO signal_name,signal_do;
+        PulseDO \High\PLength:=duration, signal_do;
+        RETURN TRUE;
+    ENDFUNC
+
 
     FUNC bool try_motion_program_wait(num cmd_num)
         VAR num t;

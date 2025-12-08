@@ -438,3 +438,24 @@ class PulseDOCommand(CommandBase):
         return f"PulseDO '{self.signal_name}' {self.duration};"
 
     _append_method_doc = ""
+
+
+@dataclass
+class SetAccelerationCommand(CommandBase):
+    command_opcode = 19
+
+    acceleration: int  # Acceleration in %
+    acceleration_rate: int  # Rate at which acceleration changes in %
+
+    def write_params(self, f: io.IOBase):
+        # pass
+        acceleration_b = util.intnum_to_bin(self.acceleration)
+        acceleration_rate_b = util.intnum_to_bin(self.acceleration_rate)
+
+        f.write(acceleration_b)
+        f.write(acceleration_rate_b)
+
+    def to_rapid(self, **kwargs):
+        return f"SetAcceleration {self.acceleration}, {self.acceleration_rate};"
+
+    _append_method_doc = ""
