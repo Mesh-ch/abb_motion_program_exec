@@ -494,8 +494,8 @@ class MotionProgramExecClient:
         """Wait for motion program to complete"""
 
         while True:
-            exec_state = self.abb_client.get_execution_state()
-            if exec_state.ctrlexecstate != "running":
+            completed = self.abb_client.get_digital_io("motion_program_completed")
+            if completed:
                 break
             time.sleep(0.05)
 
