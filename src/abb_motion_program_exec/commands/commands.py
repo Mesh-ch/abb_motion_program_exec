@@ -459,3 +459,24 @@ class SetAccelerationCommand(CommandBase):
         return f"SetAcceleration {self.acceleration}, {self.acceleration_rate};"
 
     _append_method_doc = ""
+
+
+@dataclass
+class SetVelocityCommand(CommandBase):
+    command_opcode = 20
+
+    override: float  # override in %
+    max_tcp: float  #  max tcp in mm/s
+
+    def write_params(self, f: io.IOBase):
+        # pass
+        override_b = util.num_to_bin(self.override)
+        max_tcp_b = util.num_to_bin(self.max_tcp)
+
+        f.write(override_b)
+        f.write(max_tcp_b)
+
+    def to_rapid(self, **kwargs):
+        return f"SetVelocity {self.override}, {self.max_tcp}mm/s;"
+
+    _append_method_doc = ""
