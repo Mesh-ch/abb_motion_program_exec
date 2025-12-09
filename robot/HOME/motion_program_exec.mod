@@ -4,6 +4,7 @@ MODULE motion_program_exec
     CONST num max_targets:=256;
     PERS num skipped_targets{max_targets};
     VAR clock production_clock;
+    VAR clock produce_stirrup_clock;
     VAR num production_time;
     PERS num x_offset;
     PERS num y_offset;
@@ -40,14 +41,17 @@ MODULE motion_program_exec
     CONST num MOTION_PROGRAM_CMD_PULSEDO:=18;
     !Set Acceleration
     CONST num MOTION_PROGRAM_CMD_SETACCEL:=19;
-
+    !Set Velocity
+    CONST num MOTION_PROGRAM_CMD_SETVEL:=20;
+    !Produce Stirrup
+    CONST num MOTION_PROGRAM_CMD_PRODSTIRRUP:=21;
 
     LOCAL VAR iodev motion_program_io_device;
     LOCAL VAR rawbytes motion_program_bytes;
     LOCAL VAR num motion_program_bytes_offset;
 
-    TASK PERS tooldata motion_program_tool:=[TRUE,[[64.4664,0.233697,727.505],[0.707,0,0,-0.707]],[25,[0,0,300],[1,0,0,0],0,0,0]];
-    TASK PERS wobjdata motion_program_wobj:=[FALSE,TRUE,"ROB_1",[[0,0,0],[1,0,0,0]],[[0,0,0],[1,0,0,0]]];
+    TASK PERS tooldata motion_program_tool:=[TRUE,[[0,0,0],[1,0,0,0]],[0.001,[0,0,0.001],[1,0,0,0],0,0,0]];
+    TASK PERS wobjdata motion_program_wobj:=[FALSE,TRUE,"",[[0,0,0],[1,0,0,0]],[[0,0,0],[1,0,0,0]]];
     TASK PERS loaddata motion_program_gripload:=[0.001,[0,0,0.001],[1,0,0,0],0,0,0];
 
     LOCAL VAR rmqslot logger_rmq;
@@ -363,6 +367,12 @@ MODULE motion_program_exec
         CASE MOTION_PROGRAM_CMD_SETACCEL:
             motion_cmd_num_history{local_cmd_ind}:=-1;
             RETURN set_accel(cmd_num);
+        CASE MOTION_PROGRAM_CMD_SETVEL:
+            motion_cmd_num_history{local_cmd_ind}:=-1;
+            RETURN set_vel(cmd_num);
+        CASE MOTION_PROGRAM_CMD_PRODSTIRRUP:
+            motion_cmd_num_history{local_cmd_ind}:=-1;
+            RETURN produce_stirrup(cmd_num);
         DEFAULT:
             RAISE ERR_INVALID_OPCODE;
         ENDTEST
@@ -942,19 +952,6 @@ MODULE motion_program_exec
         RETURN TRUE;
     ENDFUNC
     
-    FUNC bool set_accel(num cmd_num)
-        VAR num acceleration ;
-        var num acceleration_rate;
-        IF NOT (
-        try_motion_program_read_num(acceleration)
-        AND try_motion_program_read_num(acceleration_rate)
-        ) THEN
-            RETURN FALSE;
-        ENDIF
-        AccSet acceleration, acceleration_rate;
-        RETURN TRUE;
-    ENDFUNC
-    
     FUNC bool pulse_do(num cmd_num)
         VAR string signal_name;
         VAR signaldo signal_do;
@@ -970,7 +967,220 @@ MODULE motion_program_exec
         RETURN TRUE;
     ENDFUNC
 
+    
+    FUNC bool set_accel(num cmd_num)
+        VAR num acceleration ;
+        VAR num acceleration_rate;
+        IF NOT (
+        try_motion_program_read_num(acceleration)
+        AND try_motion_program_read_num(acceleration_rate)
+        ) THEN
+            RETURN FALSE;
+        ENDIF
+        AccSet acceleration, acceleration_rate;
+        TPWrite "acc: " + NumToStr(acceleration, 4);
+        TPWrite "acca ramp: " + NumToStr(acceleration_rate, 4);
+        RETURN TRUE;
+    ENDFUNC
+    
+    FUNC bool set_vel(num cmd_num)
+        VAR num override;
+        VAR num max_tcp;
+        IF NOT (
+        try_motion_program_read_num(override)
+        AND try_motion_program_read_num(max_tcp)
+        ) THEN
+            RETURN FALSE;
+        ENDIF
+        VelSet override, max_tcp;
+        RETURN TRUE;
+    ENDFUNC
+    
+    FUNC bool produce_stirrup(num cmd_num)
+        VAR wobjdata bending_machine_wobj;
+        VAR wobjdata dropoff_wobj;
+    
+        VAR robtarget pickup_entry_1;
+        VAR robtarget pickup_entry_2;
+        VAR robtarget pickup_actual;
+        VAR robtarget pickup_exit_1;
+        VAR robtarget pickup_exit_2;
+        VAR robtarget placing_entry;
+        VAR robtarget placing_actual;
+        VAR robtarget placing_exit;
+        
+        VAR jointtarget transfer_position_placing_1;
+        VAR jointtarget transfer_position_placing_2;
+        VAR jointtarget transfer_position_returning_1;
+        VAR jointtarget transfer_position_returning_2;
 
+    
+        VAR speeddata speed_max_no_rebar;
+        VAR speeddata speed_max_with_rebar;
+        VAR speeddata speed_fast;
+        VAR speeddata speed_medium;
+        VAR speeddata speed_slow;
+        VAR speeddata speed_very_slow;
+        VAR speeddata speed_with_rebar;
+    
+        VAR num acceleration_no_rebar;
+        VAR num acceleration_no_rebar_rate;
+        VAR num acceleration_with_rebar;
+        VAR num acceleration_with_rebar_rate;
+    
+        VAR string io_open_gripper;
+        VAR string io_close_gripper;
+        VAR string gripper_is_closed;
+        VAR string gripper_is_open;
+        VAR string robot_online;
+        VAR string robot_safe;
+        VAR string robot_grasped;
+        VAR string start_cycle;
+        VAR string machine_online;
+        VAR string machine_state;
+        VAR string machine_ready;
+        VAR string pickup_ready;
+        VAR string cutting_done;
+        
+        ! --- Digital Outputs ---
+        VAR signaldo open_gripper_do;
+        VAR signaldo close_gripper_do;
+        VAR signaldo robot_online_do;
+        VAR signaldo robot_safe_do;
+        VAR signaldo robot_grasped_do;
+        VAR signaldo start_cycle_do;
+
+    
+        ! --- Digital Inputs ---
+        VAR signaldi gripper_is_closed_di;
+        VAR signaldi gripper_is_open_di;
+        VAR signaldi machine_state_di;
+        VAR signaldi machine_ready_di;
+        VAR signaldi pickup_ready_di;
+        VAR signaldi cutting_done_di;
+
+        IF NOT (
+            try_motion_program_read_wd(bending_machine_wobj)
+            AND try_motion_program_read_wd(dropoff_wobj)
+    
+            AND try_motion_program_read_rt(pickup_entry_1)
+            AND try_motion_program_read_rt(pickup_entry_2)
+            AND try_motion_program_read_rt(pickup_actual)
+            AND try_motion_program_read_rt(pickup_exit_1)
+            AND try_motion_program_read_rt(pickup_exit_2)
+            AND try_motion_program_read_rt(placing_entry)
+            AND try_motion_program_read_rt(placing_actual)
+            AND try_motion_program_read_rt(placing_exit)
+            
+            AND try_motion_program_read_jt(transfer_position_placing_1)
+            AND try_motion_program_read_jt(transfer_position_placing_2)
+            AND try_motion_program_read_jt(transfer_position_returning_1)
+            AND try_motion_program_read_jt(transfer_position_returning_2)
+            
+            AND try_motion_program_read_sd(speed_max_no_rebar)
+            AND try_motion_program_read_sd(speed_max_with_rebar)
+            AND try_motion_program_read_sd(speed_fast)
+            AND try_motion_program_read_sd(speed_medium)
+            AND try_motion_program_read_sd(speed_slow)
+            AND try_motion_program_read_sd(speed_very_slow)
+            AND try_motion_program_read_sd(speed_with_rebar)
+    
+            AND try_motion_program_read_num(acceleration_no_rebar)
+            AND try_motion_program_read_num(acceleration_no_rebar_rate)
+            AND try_motion_program_read_num(acceleration_with_rebar)
+            AND try_motion_program_read_num(acceleration_with_rebar_rate)
+    
+            AND try_motion_program_read_string(io_open_gripper)
+            AND try_motion_program_read_string(io_close_gripper)
+            AND try_motion_program_read_string(gripper_is_closed)
+            AND try_motion_program_read_string(gripper_is_open)
+            AND try_motion_program_read_string(robot_online)
+            AND try_motion_program_read_string(robot_safe)
+            AND try_motion_program_read_string(robot_grasped)
+            AND try_motion_program_read_string(start_cycle)
+            AND try_motion_program_read_string(machine_online)
+            AND try_motion_program_read_string(machine_state)
+            AND try_motion_program_read_string(machine_ready)
+            AND try_motion_program_read_string(pickup_ready)
+            AND try_motion_program_read_string(cutting_done)
+        ) THEN
+            RETURN FALSE;
+        ENDIF
+
+        ! --- AliasIO mapping ---
+        AliasIO io_open_gripper,       open_gripper_do;
+        AliasIO io_close_gripper,      close_gripper_do;
+        AliasIO robot_online,          robot_online_do;
+        AliasIO robot_safe,            robot_safe_do;
+        AliasIO robot_grasped,         robot_grasped_do;
+        AliasIO start_cycle,           start_cycle_do;
+
+        AliasIO gripper_is_closed,     gripper_is_closed_di;
+        AliasIO gripper_is_open,       gripper_is_open_di;
+        AliasIO machine_ready,         machine_ready_di;
+        AliasIO pickup_ready,          pickup_ready_di;
+        AliasIO cutting_done,          cutting_done_di;
+        
+        ClkReset produce_stirrup_clock;
+        ClkStart produce_stirrup_clock;
+        !Start production
+        ConfL\Off;
+        motion_program_wobj := bending_machine_wobj;
+        VelSet 100, speed_max_no_rebar.v_tcp;
+        AccSet acceleration_no_rebar, acceleration_no_rebar_rate;
+        MoveL pickup_entry_1, speed_max_no_rebar, z10, motion_program_tool \WObj:=motion_program_wobj;
+        WaitDI pickup_ready_di, 1;
+        SetDO robot_safe_do,0;
+        MoveL pickup_entry_2, speed_fast, z5, motion_program_tool \WObj:=motion_program_wobj;
+        ! if EVG: missing
+        ! WaitDI
+        MoveL pickup_actual, speed_very_slow, fine, motion_program_tool \WObj:=motion_program_wobj;
+        SetDO open_gripper_do,0;
+        PulseDO \High\PLength:=1, close_gripper_do;
+
+        VelSet 100, speed_max_with_rebar.v_tcp;
+        AccSet acceleration_with_rebar, acceleration_with_rebar_rate;
+
+        WaitDI gripper_is_closed_di,1;
+        SetDO robot_grasped_do,1;
+        WaitDI cutting_done_di,1;
+
+        MoveL pickup_exit_1, speed_with_rebar, z10, motion_program_tool \WObj:=motion_program_wobj;
+        MoveL pickup_exit_2, speed_with_rebar, z50, motion_program_tool \WObj:=motion_program_wobj;
+
+        SetDO robot_grasped_do,0;
+        SetDO robot_safe_do,1;
+        
+        ! Move to dropoff
+        motion_program_wobj := dropoff_wobj;
+        MoveAbsJ transfer_position_placing_1, speed_with_rebar, z200, motion_program_tool;
+        !MoveAbsJ transfer_position_placing_2, speed_with_rebar, z200, motion_program_tool;
+
+
+        MoveL placing_entry, speed_with_rebar, z200, motion_program_tool \WObj:=motion_program_wobj;
+        MoveL placing_actual, speed_with_rebar, fine, motion_program_tool \WObj:=motion_program_wobj;
+
+        SetDO close_gripper_do,0;
+        PulseDO \High\PLength:=1, open_gripper_do;
+        
+        VelSet 100, speed_max_no_rebar.v_tcp;
+        AccSet acceleration_no_rebar, acceleration_no_rebar_rate;
+
+        MoveL placing_exit, speed_max_no_rebar, z200, motion_program_tool \WObj:=motion_program_wobj;
+        
+        ! Return
+        MoveAbsJ transfer_position_returning_1, speed_with_rebar, z200, motion_program_tool;
+        !MoveAbsJ transfer_position_returning_2, speed_with_rebar, z200, motion_program_tool;
+        
+        motion_program_wobj := bending_machine_wobj;
+        MoveL pickup_entry_1, speed_max_no_rebar, z10, motion_program_tool \WObj:=motion_program_wobj;
+        ConfL\Off;
+        ClkStop produce_stirrup_clock;
+        production_time:=ClkRead(produce_stirrup_clock);
+        ErrWrite\I,"Produce Stirrup","Produce stirrup completed in "+NumToStr(production_time,3);
+        RETURN TRUE;
+    ENDFUNC
+    
     FUNC bool try_motion_program_wait(num cmd_num)
         VAR num t;
         IF NOT try_motion_program_read_num(t) THEN

@@ -137,6 +137,7 @@ class MotionProgram:
     SetWorkObject = command_append_method(commands.SetWorkObjectCommand)
     SetAcceleration = command_append_method(commands.SetAccelerationCommand)
     SetVelocity = command_append_method(commands.SetVelocityCommand)
+    ProduceStirrup = command_append_method(commands.ProduceStirrupCommand)
 
     def __init__(
         self,

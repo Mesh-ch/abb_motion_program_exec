@@ -444,13 +444,13 @@ class PulseDOCommand(CommandBase):
 class SetAccelerationCommand(CommandBase):
     command_opcode = 19
 
-    acceleration: int  # Acceleration in %
-    acceleration_rate: int  # Rate at which acceleration changes in %
+    acceleration: float  # Acceleration in %
+    acceleration_rate: float  # Rate at which acceleration changes in %
 
     def write_params(self, f: io.IOBase):
         # pass
-        acceleration_b = util.intnum_to_bin(self.acceleration)
-        acceleration_rate_b = util.intnum_to_bin(self.acceleration_rate)
+        acceleration_b = util.num_to_bin(self.acceleration)
+        acceleration_rate_b = util.num_to_bin(self.acceleration_rate)
 
         f.write(acceleration_b)
         f.write(acceleration_rate_b)
@@ -478,5 +478,110 @@ class SetVelocityCommand(CommandBase):
 
     def to_rapid(self, **kwargs):
         return f"SetVelocity {self.override}, {self.max_tcp}mm/s;"
+
+    _append_method_doc = ""
+
+
+@dataclass
+class ProduceStirrupCommand(CommandBase):
+    command_opcode = 21
+    # workobjects
+    bending_machine_wobj: wobjdata  # workobject for pickup
+    dropoff_wobj: wobjdata  # workobject for dropoff
+    # robtargets
+    pickup_entry_1: robtarget
+    pickup_entry_2: robtarget
+    pickup_actual: robtarget
+    pickup_exit_1: robtarget
+    pickup_exit_2: robtarget
+    placing_entry: robtarget
+    placing_actual: robtarget
+    placing_exit: robtarget
+    # jointtargets
+    transfer_position_placing_1: jointtarget
+    transfer_position_placing_2: jointtarget
+    transfer_position_returning_1: jointtarget
+    transfer_position_returning_2: jointtarget
+    # speeds
+    speed_max_no_rebar: speeddata
+    speed_max_with_rebar: speeddata
+    speed_fast: speeddata
+    speed_medium: speeddata
+    speed_slow: speeddata
+    speed_very_slow: speeddata
+    speed_with_rebar: speeddata  # adapted speed depending on rebar length
+    # accelerations
+    acceleration_no_rebar: float
+    acceleration_no_rebar_rate: float
+    acceleration_with_rebar: float
+    acceleration_with_rebar_rate: float
+    # io signals
+    io_open_gripper: str
+    io_close_gripper: str
+    gripper_is_closed: str
+    gripper_is_open: str
+    robot_online: str
+    robot_safe: str
+    robot_grasped: str
+    start_cycle: str
+    machine_online: str
+    machine_state: str
+    machine_ready: str
+    pickup_ready: str
+    cutting_done: str
+
+    def write_params(self, f: io.IOBase):
+        # workobjects
+        f.write(util.wobjdata_to_bin(self.bending_machine_wobj))
+        f.write(util.wobjdata_to_bin(self.dropoff_wobj))
+
+        # robtargets
+        f.write(util.robtarget_to_bin(self.pickup_entry_1))
+        f.write(util.robtarget_to_bin(self.pickup_entry_2))
+        f.write(util.robtarget_to_bin(self.pickup_actual))
+        f.write(util.robtarget_to_bin(self.pickup_exit_1))
+        f.write(util.robtarget_to_bin(self.pickup_exit_2))
+        f.write(util.robtarget_to_bin(self.placing_entry))
+        f.write(util.robtarget_to_bin(self.placing_actual))
+        f.write(util.robtarget_to_bin(self.placing_exit))
+
+        # jointtargets
+        f.write(util.jointtarget_to_bin(self.transfer_position_placing_1))
+        f.write(util.jointtarget_to_bin(self.transfer_position_placing_2))
+        f.write(util.jointtarget_to_bin(self.transfer_position_returning_1))
+        f.write(util.jointtarget_to_bin(self.transfer_position_returning_2))
+
+        # speeds
+        f.write(util.speeddata_to_bin(self.speed_max_no_rebar))
+        f.write(util.speeddata_to_bin(self.speed_max_with_rebar))
+        f.write(util.speeddata_to_bin(self.speed_fast))
+        f.write(util.speeddata_to_bin(self.speed_medium))
+        f.write(util.speeddata_to_bin(self.speed_slow))
+        f.write(util.speeddata_to_bin(self.speed_very_slow))
+        f.write(util.speeddata_to_bin(self.speed_with_rebar))
+
+        # accelerations
+        f.write(util.num_to_bin(self.acceleration_no_rebar))
+        f.write(util.num_to_bin(self.acceleration_no_rebar_rate))
+        f.write(util.num_to_bin(self.acceleration_with_rebar))
+        f.write(util.num_to_bin(self.acceleration_with_rebar_rate))
+
+        # io signals (strings)
+        f.write(util.str_to_bin(self.io_open_gripper))
+        f.write(util.str_to_bin(self.io_close_gripper))
+        f.write(util.str_to_bin(self.gripper_is_closed))
+        f.write(util.str_to_bin(self.gripper_is_open))
+        f.write(util.str_to_bin(self.robot_online))
+        f.write(util.str_to_bin(self.robot_safe))
+        f.write(util.str_to_bin(self.robot_grasped))
+        f.write(util.str_to_bin(self.start_cycle))
+        f.write(util.str_to_bin(self.machine_online))
+        f.write(util.str_to_bin(self.machine_state))
+        f.write(util.str_to_bin(self.machine_ready))
+        f.write(util.str_to_bin(self.pickup_ready))
+        f.write(util.str_to_bin(self.cutting_done))
+
+    def to_rapid(self, **kwargs):
+        return f"ProduceStirrup;"
 
     _append_method_doc = ""
