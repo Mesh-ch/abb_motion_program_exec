@@ -313,7 +313,7 @@ class MotionProgramExecClient:
         :param wait: If True, wait for the program to complete. Else, return once the program has been started.
         :param seqno: Optional motion program seqno override
         """
-        filename, b = _get_motion_program_file(self.abb_client.get_ramdisk_path(), motion_program, task, seqno=seqno)
+        filename, b = _get_motion_program_file(self.abb_client.get_home_path(), motion_program, task, seqno=seqno)
 
         def _upload():
             self.abb_client.upload_file(filename, b)
