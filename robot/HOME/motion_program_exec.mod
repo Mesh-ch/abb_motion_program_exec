@@ -6,7 +6,9 @@ MODULE motion_program_exec
     VAR clock production_clock;
     VAR num production_time;
     PERS num x_offset;
+    PERS num x_offset_alt;
     PERS num y_offset;
+    PERS num y_offset_alt;
     PERS num z_offset;
     PERS num matching_accuracy;
     CONST num MOTION_PROGRAM_DRIVER_MODE:=0;
@@ -169,7 +171,7 @@ MODULE motion_program_exec
 
         motion_program_state{task_ind}.motion_program_filename:=filename;
         motion_program_clear_bytes;
-        Open "RAMDISK:"\File:=filename,motion_program_io_device,\Read\Bin;
+        Open "HOME:"\File:=filename,motion_program_io_device,\Read\Bin;
         IF NOT try_motion_program_read_num(ver) THEN
             RAISE ERR_FILESIZE;
         ENDIF
@@ -557,6 +559,8 @@ MODULE motion_program_exec
         CONST num max_deviation_y:=35;
         CONST num max_deviation_z:=40;
         CONST num min_accuracy:=93;
+        CONST num secondary_accuracy:=75;
+        CONST num max_secondary_delta:=3;
         CONST num search_distance:=20;
         !mm
         VAR num profile_vertical_accuracy;
@@ -611,6 +615,19 @@ MODULE motion_program_exec
                     vertical_bar_inaccurate:=False;
                     tying_offsetZ:=z_offset-tying_gap_distance;
                     tying_offsetX:=x_offset;
+                ELSEIF (secondary_accuracy<matching_accuracy AND matching_accuracy<= min_accuracy) THEN
+                    ! Try using the segment selector 
+                    IF Abs(x_offset-x_offset_alt) < max_secondary_delta THEN
+                        vertical_bar_inaccurate:=False;
+                        ErrWrite \I, "Using secondary OXM measurment", "Using segment selector" \RL2:="x_offset_alt:"+NumToStr(x_offset_alt,1);
+                        IF rotate_clockwise=1 THEN
+                            tying_offsetX:=x_offset_alt;
+                        ELSE
+                            tying_offsetX:=-1*x_offset_alt;
+                        ENDIF
+                    ELSE
+                        vertical_bar_inaccurate:=TRUE;
+                    ENDIF
                 ElSE
                     vertical_bar_inaccurate:=TRUE;
                 ENDIF
@@ -661,6 +678,19 @@ MODULE motion_program_exec
                         ELSE
                             tying_offsetY:=-1*y_offset;
                         ENDIF
+                    ELSEIF (secondary_accuracy<matching_accuracy AND matching_accuracy<= min_accuracy) THEN
+                        ! Try using the segment selector 
+                        IF Abs(y_offset-y_offset_alt) < max_secondary_delta THEN
+                            horizontal_bar_inaccurate:=False;
+                            ErrWrite \I, "Using secondary OXM measurment", "Using segment selector" \RL2:="y_offset_alt:"+NumToStr(y_offset_alt,1);
+                            IF rotate_clockwise=1 THEN
+                                tying_offsetY:=y_offset_alt;
+                            ELSE
+                                tying_offsetY:=-1*y_offset_alt;
+                            ENDIF
+                        ELSE
+                            horizontal_bar_inaccurate:=TRUE;
+                        ENDIF
                     ElSE
                         horizontal_bar_inaccurate:=TRUE;
                     ENDIF
@@ -696,7 +726,7 @@ MODULE motion_program_exec
                     "Skipping target due to measurement offsets being too large!"
                     \RL2:="dx: "+NumToStr(tying_offsetX,1)+" dy: "+NumToStr(tying_offsetY,1)+" dz: "+NumToStr(tying_offsetZ,1)+" ("+NumToStr(abs(approach_offsetZ)-tying_gap_distance,1)+")",
                     \RL3:="Max error z"+NumToStr(max_deviation_z,1)+"max error x:"+NumToStr(max_deviation_x,1)+"max error y:"+NumToStr(max_deviation_y,1),
-                    \RL4:="profile inaccurate H:"+ValToStr(horizontal_bar_inaccurate)+" "+NumToStr(profile_horizontal_accuracy,1)+"V:"+ValToStr(vertical_bar_inaccurate)+" "+NumToStr(profile_vertical_accuracy,1);
+                    \RL4:="ProfInacc H:"+ValToStr(horizontal_bar_inaccurate)+" "+NumToStr(profile_horizontal_accuracy,1)+"V:"+ValToStr(vertical_bar_inaccurate)+" "+NumToStr(profile_vertical_accuracy,1);
                 skipped_targets{tying_target_idx}:=tying_target_idx;
                 Incr skipped_target_counter;
             ELSE
